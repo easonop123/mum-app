@@ -19,12 +19,7 @@ A local-first, bilingual (plain English / Simplified Chinese) Progressive Web Ap
 
 <img src="docs/open-on-iphone-qr.png" alt="QR code for https://easonop123.github.io/mum-app/" width="200">
 
-1. **One-time GitHub setting** (repository owner): **Settings → Pages → Build and deployment**.
-   - Source: **Deploy from a branch**
-   - Branch: **`gh-pages`**, folder **`/ (root)`**
-   - Click **Save**.
-
-   The first publish takes about a minute. The `gh-pages` branch already contains the built app.
+1. GitHub Pages is already on for this repository: it serves the **`gh-pages`** branch, which holds the built app. If the address ever shows a 404, check **Settings → Pages → Deploy from a branch → `gh-pages` / `(root)`**.
 2. On her iPhone, scan the QR code with the Camera, or type the address into **Safari**.
 3. In Safari: **Share → Add to Home Screen →** turn on **Open as Web App** if it is shown **→ Add**.
 4. Open it once while online. After that, everything except the videos works offline.
