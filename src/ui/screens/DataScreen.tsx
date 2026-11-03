@@ -13,16 +13,9 @@ function PrivacyList() {
   const { data } = useStore();
   const { t } = useI18n();
   const s = summarizeForPrivacy(data);
-  const items = [
-    t.data.preview.answers(s.healthAnswers),
-    s.hasProfessionalAdvice ? t.data.preview.advice : null,
-    s.hasClinicianPlan ? t.data.preview.clinicianPlan : null,
-    t.data.preview.sessions(s.practiceSessions),
-    s.notes > 0 ? t.data.preview.notes(s.notes) : null,
-    s.safetyHolds > 0 ? t.data.preview.holds(s.safetyHolds) : null,
-    s.hasName ? t.data.preview.name : null,
-    s.hasBirthYear ? t.data.preview.birthYear : null,
-  ].filter((x): x is string => !!x);
+  const items = [t.data.preview.sessions(s.practiceSessions), t.data.preview.settings, s.hasNote ? t.data.preview.note : null, s.hasName ? t.data.preview.name : null].filter(
+    (x): x is string => !!x,
+  );
   return (
     <ul>
       {items.map((i) => (
@@ -180,7 +173,7 @@ export function DataScreen() {
               setDeleteStep(0);
               setConfirmText('');
               setDeleted(true);
-              navigate('/onboarding', { replace: true });
+              navigate('/welcome', { replace: true });
             }}
           >
             <PrivacyList />

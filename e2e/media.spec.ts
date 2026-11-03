@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { completeOnboarding, startFresh } from './helpers';
+import { letsStart, startFresh } from './helpers';
 
 test('videos load only on tap, and a failed embed gives a truthful fallback (cases 11, 14)', async ({ page, context }) => {
   const youtubeRequests: string[] = [];
@@ -8,7 +8,7 @@ test('videos load only on tap, and a failed embed gives a truthful fallback (cas
     return route.abort();
   });
   await startFresh(page);
-  await completeOnboarding(page);
+  await letsStart(page);
   await page.goto('/#/learn/supported-heel-raise');
   await expect(page.getByTestId('dose-note').first()).toContainText('视频用来看动作；次数和组数请按本页安排，不跟随视频加量。');
   expect(youtubeRequests).toHaveLength(0);

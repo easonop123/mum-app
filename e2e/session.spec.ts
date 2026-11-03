@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { beginPractice, readyToPractise } from './helpers';
+import { FRIDAY_10AM_NZ, beginPractice, doFullPractice, readyToPractise } from './helpers';
+
+test('first run is one tap, and practice starts with no questions', async ({ page }) => {
+  await readyToPractise(page);
+  await expect(page.getByText(/paused|waiting for medical advice/i)).toHaveCount(0);
+  await beginPractice(page);
+  await expect(page.getByRole('heading', { name: 'Warm-up: easy walking' })).toBeVisible();
+  await expect(page.getByTestId('stop-button')).toBeVisible();
+});
 
 test('refresh, backgrounding and locking keep partial state without advancing (case 16)', async ({ page }) => {
   await readyToPractise(page);
@@ -20,9 +28,8 @@ test('refresh, backgrounding and locking keep partial state without advancing (c
     document.dispatchEvent(new Event('visibilitychange'));
   });
   await expect(page.getByRole('heading', { name: 'Wall press-up' })).toBeVisible();
-  await expect(page.getByText('Set 1 of 1')).toBeVisible();
 
-  // Full reload mid-set.
+  // Full reload mid-practice.
   await page.reload();
   await expect(page.getByText(/Movement 2 of 4/)).toBeVisible();
   const ready = page.getByRole('button', { name: "I'm ready — next" });
@@ -30,68 +37,59 @@ test('refresh, backgrounding and locking keep partial state without advancing (c
   await expect(page.getByRole('heading', { name: 'Wall press-up' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Done: 5' })).toBeVisible();
 
-  // Today shows the resume card; nothing was added automatically.
   await page.goto('/#/');
   await expect(page.getByTestId('resume-card')).toContainText('Nothing was added while you were away');
-  await page.goto('/#/progress');
-  await expect(page.getByText('Active 0 times this week')).toBeVisible();
 });
 
-test('the tiny session is 3 + 3 with at least 60 seconds of rest between, and is logged as small (case 26)', async ({ page }) => {
+test('the smaller practice is 3 + 3 with at least 60 seconds of rest between', async ({ page }) => {
   await readyToPractise(page);
   await beginPractice(page, 'tiny');
   await expect(page.getByRole('heading', { name: 'Chair sit-to-stand' })).toBeVisible();
   await expect(page.getByText('1 set · 3 repetitions')).toBeVisible();
   await page.getByRole('button', { name: 'Done: 3' }).click();
   await expect(page.getByText('Rest at least 60 seconds before the wall press-ups.')).toBeVisible();
-  const readyBtn = page.getByRole('button', { name: /Ready in \d+ s|I'm ready — next/ });
-  await expect(readyBtn).toBeDisabled();
+  await expect(page.getByRole('button', { name: /Ready in \d+ s/ })).toBeDisabled();
   await page.clock.fastForward('01:01');
-  await expect(page.getByRole('button', { name: "I'm ready — next" })).toBeEnabled();
   await page.getByRole('button', { name: "I'm ready — next" }).click();
-  await expect(page.getByRole('heading', { name: 'Wall press-up' })).toBeVisible();
   await page.getByRole('button', { name: 'Done: 3' }).click();
-  await page.getByRole('radio', { name: 'Comfortable' }).check();
-  await page.getByRole('group', { name: 'Did the movements feel controlled?' }).getByRole('radio', { name: 'Yes' }).check();
-  await page.getByRole('group', { name: 'At the end, could you have done a few more?' }).getByRole('radio', { name: 'Yes' }).check();
-  await page.getByRole('button', { name: 'Save and finish' }).click();
+  await expect(page.getByTestId('finished-view')).toBeVisible();
   await page.goto('/#/progress');
   await expect(page.getByText(/Smaller practice/)).toBeVisible();
   await expect(page.getByText('Current amount: Stage 1 of 8')).toBeVisible();
 });
 
-test('next-day question appears on the next opening; no automatic progression (case 7)', async ({ page }) => {
+test('two full practices → "Ready for a little more?"; keeping the amount is the default', async ({ page }) => {
+  await readyToPractise(page);
+  await doFullPractice(page);
+  await page.goto('/#/');
+  await expect(page.getByText('Full practices at this stage: 1 of 2')).toBeVisible();
+  await expect(page.getByTestId('offer-card')).toHaveCount(0);
+
+  await page.clock.setSystemTime(FRIDAY_10AM_NZ);
+  await page.reload();
+  await doFullPractice(page);
+  await page.goto('/#/');
+  const offer = page.getByTestId('offer-card');
+  await expect(offer).toContainText('Ready for a little more?');
+  await expect(offer.getByRole('button', { name: 'Keep this amount / 保持这个量' })).toBeVisible();
+  await offer.getByRole('button', { name: 'Try Stage 2' }).click();
+  await expect(page.getByText('OK — Stage 2 from your next practice.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Stage 2 of 8' })).toBeVisible();
+});
+
+test('Stop saves the practice and never locks anything', async ({ page }) => {
   await readyToPractise(page);
   await beginPractice(page);
   await page.getByRole('button', { name: 'Skip the warm-up' }).click();
-  const ready = page.getByRole('button', { name: "I'm ready — next" });
-  const finish = page.getByRole('radio', { name: 'Comfortable' });
-  for (let i = 0; i < 5; i++) {
-    await page.getByRole('button', { name: 'Done: 5' }).click();
-    await expect(ready.or(finish)).toBeVisible();
-    if (await ready.isVisible()) await ready.click();
-  }
-  await page.getByRole('radio', { name: 'Comfortable' }).check();
-  await page.getByRole('group', { name: 'Did the movements feel controlled?' }).getByRole('radio', { name: 'Yes' }).check();
-  await page.getByRole('group', { name: 'At the end, could you have done a few more?' }).getByRole('radio', { name: 'Yes' }).check();
-  await page.getByRole('button', { name: 'Save and finish' }).click();
-  await expect(page.getByRole('heading', { name: 'Saved' })).toBeVisible();
-
-  // Same day: no next-day question yet, and no extra practice today.
+  await page.getByRole('button', { name: 'Done: 5' }).click();
+  await page.getByTestId('stop-button').click();
+  await page.getByRole('button', { name: 'Yes, stop' }).click();
+  await expect(page.getByTestId('stopped-view')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Call 111/ })).toHaveAttribute('href', 'tel:111');
+  // Friday: practice is simply available again.
+  await page.clock.setSystemTime(FRIDAY_10AM_NZ);
   await page.goto('/#/');
-  await expect(page.getByTestId('next-day-card')).toHaveCount(0);
-  await expect(page.getByRole('link', { name: "Start today's practice" })).toHaveCount(0);
-
-  // Next morning (Wednesday): asked once, without notifications.
-  await page.clock.setSystemTime(new Date('2026-11-03T20:00:00.000Z'));
   await page.reload();
-  await expect(page.getByTestId('next-day-card')).toBeVisible();
-  await page.getByRole('radio', { name: /^As usual/ }).check();
-  await page.getByRole('button', { name: 'Save' }).click();
-  await expect(page.getByText('Thank you.')).toBeVisible();
-  // One comfortable session is never enough for an offer.
-  await expect(page.getByTestId('offer-card')).toHaveCount(0);
-  // The day after a practice is a rest/walking day: no start buttons, no catch-up.
-  await expect(page.getByText('You practised yesterday, so today is a rest or walking day.')).toBeVisible();
-  await expect(page.getByRole('link', { name: "Start today's practice" })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: "Start today's practice" })).toBeVisible();
+  await expect(page.getByText(/paused/i)).toHaveCount(0);
 });

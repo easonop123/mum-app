@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { completeOnboarding, startFresh } from './helpers';
+import { letsStart, startFresh } from './helpers';
 
 test('first-party offline relaunch works after a successful first visit (case 20)', async ({ page, context }) => {
   await startFresh(page, { clock: false });
@@ -9,13 +9,13 @@ test('first-party offline relaunch works after a successful first visit (case 20
   });
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
-  await completeOnboarding(page);
+  await letsStart(page);
 
   await context.setOffline(true);
   await page.reload();
-  // App shell, plan status, safety/help text and local history all load offline.
-  await expect(page.getByTestId('waiting-card')).toBeVisible();
-  await expect(page.getByText('Your goal: Getting up from a chair more easily')).toBeVisible();
+  // App shell, the plan, help text and local data all load offline.
+  await expect(page.getByRole('link', { name: "Start today's practice" })).toBeVisible();
+  await expect(page.getByText('Chair sit-to-stand — 1 set · 5 repetitions')).toBeVisible();
   await page.goto('/#/help');
   await expect(page.getByRole('link', { name: /Call 111/ })).toBeVisible();
   await page.goto('/#/learn/supported-heel-raise');

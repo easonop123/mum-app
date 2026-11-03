@@ -155,7 +155,7 @@ export function VideoDemo({
         ) : null}
       </div>
       <p className="muted">
-        {offlineOk ? t.video.savedOffline : `${t.video.needsInternet} ${t.video.notCached}`} {entry.visualReviewStatus !== 'approved' ? t.video.reviewPending : ''}
+        {offlineOk ? t.video.savedOffline : `${t.video.needsInternet} ${t.video.notCached}`}
       </p>
     </section>
   );

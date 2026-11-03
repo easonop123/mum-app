@@ -5,13 +5,11 @@ import { closeDatabaseForTests, deleteAllLocalData, listQuarantine, loadAppData,
 import { buildBackup, parseBackupText, MAX_IMPORT_BYTES, summarizeForPrivacy } from './exportImport';
 import { migrateToCurrent } from './migrations';
 import { AppDataSchema } from './schema';
-import { commitScreening, recordProfessionalAdvice, type Ctx } from './actions';
-import { programAccess, readinessDecision } from './selectors';
-import { CLEAR_ANSWERS, approvedAdvice } from '../../tests/factories';
+import { migrateV1toV2 } from './migrations';
+import { validateStoredData } from './db';
+import { makeSession } from '../../tests/factories';
 
 const NOW = '2026-11-03T21:00:00.000Z';
-let n = 0;
-const ctx: Ctx = { now: NOW, today: '2026-11-04', newId: () => `id-${++n}` };
 
 beforeEach(async () => {
   await closeDatabaseForTests();
@@ -22,15 +20,12 @@ afterEach(async () => {
 });
 
 describe('initial data', () => {
-  it('contains no personal health answers, history or progress (case 23)', () => {
+  it('contains no personal details, history or progress (case 23)', () => {
     const d = createInitialAppData(NOW);
-    expect(d.readiness.answers).toEqual({});
     expect(d.sessions).toEqual([]);
-    expect(d.holds).toEqual([]);
-    expect(d.professionalAdvice).toBeNull();
     expect(d.profile.displayName).toBeNull();
-    expect(d.profile.birthYear).toBeNull();
-    expect(d.programStatus).toBe('assessment_pending');
+    expect(d.stage).toBe(1);
+    expect(JSON.stringify(d)).not.toMatch(/readiness|advice|hold/i);
     expect(AppDataSchema.safeParse(d).success).toBe(true);
   });
 });
@@ -89,14 +84,71 @@ describe('versioned migration', () => {
     expect(migrateToCurrent({}, {}, 1)).toMatchObject({ ok: false, error: 'missing_version' });
     expect(migrateToCurrent([], {}, 1)).toMatchObject({ ok: false, error: 'not_an_object' });
   });
+
+  it('v1 → v2 deletes stored health answers, advice and holds, and keeps practice history', () => {
+    const full = makeSession({ stage: 2, localDate: '2026-11-03' });
+    const v1Session = {
+      ...full,
+      planStageAtStart: 2,
+      checkIn: { newOrWorse: 'no', emergencySigns: null, urgentSigns: null },
+      feeling: 'comfortable',
+      controlledMovement: 'yes',
+      couldDoMore: 'yes',
+      effort: null,
+      symptomCodes: [],
+      note: null,
+      holdId: null,
+      userApprovedChanges: [],
+    };
+    const v1 = {
+      schemaVersion: 1,
+      contentVersion: 'mum-home-foundation-v2@2026-11-03+copy-2026-11-03.1+media-2026-11-03.1',
+      profile: { optedIn: true, language: 'zh', languageConfirmed: true, voice: 'mandarin', textScale: 1.3, region: 'NZ', regionConfirmed: true, displayName: null, birthYear: 1980, goal: 'standing', goalText: null, encouragementNote: '慢慢来' },
+      readiness: { answers: { spreadingNumbWeak: 'unsure' }, answeredAt: NOW, contentVersion: 'x', rescreenRequired: null, restrictionsNote: 'private', activityAdviceNote: null },
+      programId: 'mum-home-foundation-v2',
+      programStatus: 'assessment_pending',
+      stage: 2,
+      stageFullSessionCredits: [full.id],
+      professionalAdvice: null,
+      clinicianPlan: null,
+      equipment: [{ id: 'home-setup', kind: 'setup_check', items: {}, completedAt: null }],
+      schedule: { weekdays: ['Monday', 'Thursday'], timezone: 'Pacific/Auckland', cue: 'morning tea', reminderTime: null },
+      exerciseProgress: {},
+      sessions: [v1Session],
+      pendingNextDayChecks: [{ sessionId: full.id, sessionLocalDate: '2026-11-03', status: 'pending', response: null, answeredAt: null }],
+      holds: [{ id: 'h1', createdAt: NOW, localDate: '2026-11-03', source: 'check_in', state: 'review_before_program', kind: 'recheck_required', reasonCodes: ['check_in_unsure'], resolvedAt: null, resolution: null }],
+      progression: { lastComfortableStage: 1, stageStartedAt: NOW, returnMode: null, declinedOffer: null, stageChanges: [{ at: NOW, from: 1, to: 2, reason: 'user_accepted_offer' }] },
+      activeSession: null,
+      learningVisits: ['2026-11-02'],
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const result = validateStoredData(v1);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.migratedFrom).toBe(1);
+    const d = result.data;
+    expect(d.schemaVersion).toBe(2);
+    expect(d.stage).toBe(2);
+    expect(d.profile).toEqual({ optedIn: true, language: 'zh', voice: 'mandarin', textScale: 1.3, displayName: null, encouragementNote: '慢慢来' });
+    expect(d.schedule.weekdays).toEqual(['Monday', 'Thursday']);
+    expect(d.sessions).toHaveLength(1);
+    expect(d.sessions[0]).toMatchObject({ id: full.id, outcome: 'full_dose', creditEarned: true });
+    expect(d.stageFullSessionCredits).toEqual([full.id]);
+    expect(d.learningVisits).toEqual(['2026-11-02']);
+    const text = JSON.stringify(d);
+    for (const gone of ['readiness', 'spreadingNumbWeak', 'restrictionsNote', 'holds', 'pendingNextDayChecks', 'birthYear', 'professionalAdvice', 'checkIn', 'feeling']) {
+      expect(text).not.toContain(gone);
+    }
+    expect(migrateV1toV2({}).activeSession).toBeNull();
+  });
 });
 
 describe('export / import (case 17)', () => {
   function populated() {
-    let d = createInitialAppData(NOW);
-    d = commitScreening(d, CLEAR_ANSWERS, {}, true, ctx);
-    d = recordProfessionalAdvice(d, approvedAdvice(), ctx);
-    return d;
+    const d = createInitialAppData(NOW);
+    const s = makeSession({ localDate: '2026-11-03' });
+    return { ...d, profile: { ...d.profile, optedIn: true, encouragementNote: 'Keep going' }, sessions: [s], stageFullSessionCredits: [s.id] };
   }
 
   it('round-trips through a backup file', () => {
@@ -106,31 +158,7 @@ describe('export / import (case 17)', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.data.sessions).toEqual(d.sessions);
-    expect(result.data.professionalAdvice).toEqual(d.professionalAdvice);
-    expect(result.data.readiness.answers).toEqual(d.readiness.answers);
-  });
-
-  it('imported screening is never treated as fresh clearance (case 25)', () => {
-    const d = populated();
-    expect(programAccess(d, '2026-11-04').blockedBy).toBe('setup'); // reviewed, only setup left
-    const text = JSON.stringify(buildBackup(d, NOW));
-    const result = parseBackupText(text, text.length, '2026-11-05T00:00:00.000Z');
-    if (!result.ok) throw new Error('expected ok');
-    expect(result.data.readiness.rescreenRequired?.reason).toBe('imported');
-    expect(readinessDecision(result.data).state).toBe('onboarding_needed');
-    expect(programAccess(result.data, '2026-11-05').canStartFull).toBe(false);
-  });
-
-  it('a file cannot simply claim the plan was reviewed', () => {
-    const d = { ...createInitialAppData(NOW), programStatus: 'reviewed_for_use' as const };
-    const text = JSON.stringify({ format: 'a-little-stronger-backup', formatVersion: 1, exportedAt: NOW, data: d });
-    const result = parseBackupText(text, text.length, NOW);
-    expect(result.ok).toBe(false); // schema: reviewed_for_use requires an advice record
-    const withBadAdvice = { ...populated(), professionalAdvice: approvedAdvice({ assessedBackHistory: 'no' }), programStatus: 'reviewed_for_use' as const };
-    const text2 = JSON.stringify(buildBackup(withBadAdvice, NOW));
-    const r2 = parseBackupText(text2, text2.length, NOW);
-    if (!r2.ok) throw new Error('expected ok');
-    expect(r2.data.programStatus).toBe('assessment_pending');
+    expect(result.data.profile.encouragementNote).toBe('Keep going');
   });
 
   it('rejects oversized, non-JSON, foreign and malformed files without changing anything', () => {
@@ -145,10 +173,7 @@ describe('export / import (case 17)', () => {
     expect(parseBackupText(future, future.length, NOW)).toMatchObject({ ok: false, error: 'newer_version' });
   });
 
-  it('privacy preview counts what the file will contain', () => {
-    const s = summarizeForPrivacy(populated());
-    expect(s.healthAnswers).toBe(Object.keys(CLEAR_ANSWERS).length);
-    expect(s.hasProfessionalAdvice).toBe(true);
-    expect(s.practiceSessions).toBe(0);
+  it('preview counts what the file will contain', () => {
+    expect(summarizeForPrivacy(populated())).toMatchObject({ practiceSessions: 1, hasNote: true, hasName: false });
   });
 });

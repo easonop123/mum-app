@@ -1,17 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import programJson from '../content/program.json';
 import { PROGRAM, parseProgramDefinition } from '../content/program';
-import { EXERCISE_IDS, PROGRAM_ID, STAGES, type DumbbellConfig } from '../domain/types';
-import {
-  ProgramContentError,
-  getFixedStagePrescription,
-  getReturnSessionPrescription,
-  getTinySessionPrescription,
-  programStatusFromAdvice,
-  restrictionsFrom,
-  validateSuppliedRoutineAgainstRestrictions,
-} from './prescription';
-import { approvedAdvice } from '../../tests/factories';
+import { EXERCISE_IDS, PROGRAM_ID, STAGES } from '../domain/types';
+import { ProgramContentError, getFixedStagePrescription, getTinySessionPrescription } from './prescription';
 
 // The supplied stage table, written out independently of the JSON so the
 // test catches any divergence (acceptance case 8).
@@ -104,13 +95,8 @@ describe('getFixedStagePrescription — reads only the supplied stage table', ()
     expect([...ids].some((id) => /curl|dumbbell|row|carry|press-overhead|deadlift|goblet/i.test(id))).toBe(false);
   });
 
-  it('unknown or known dumbbell details never create a kilogram prescription (case 6)', () => {
-    const unknownDumbbell: DumbbellConfig = {
-      id: 'db1', kind: 'dumbbell', label: 'Adjustable', handleCount: null, configurations: [{ label: 'lightest', assembledKg: null }],
-      smallestIncrementKg: null, lockingSecure: 'unsure', weighedOnScale: 'no', notes: '', updatedAt: '2026-11-03T00:00:00.000Z',
-    };
+  it('never creates a kilogram prescription (case 6)', () => {
     // The prescription API has no equipment input at all; every stage is unloaded.
-    expect(unknownDumbbell.configurations[0]!.assembledKg).toBeNull();
     for (const stage of STAGES) {
       const p = getFixedStagePrescription(PROGRAM_ID, stage);
       expect(p.addedLoadKg).toBe(0);
@@ -127,7 +113,7 @@ describe('getFixedStagePrescription — reads only the supplied stage table', ()
   });
 });
 
-describe('tiny and return sessions', () => {
+describe('tiny session', () => {
   it('the tiny session is exactly 3 sit-to-stands and 3 wall presses with ≥60 s rest', () => {
     const p = getTinySessionPrescription(PROGRAM_ID, 4);
     expect(p.mode).toBe('tiny');
@@ -138,61 +124,4 @@ describe('tiny and return sessions', () => {
     expect(p.minimumRestSeconds).toBe(60);
   });
 
-  it('a long-gap return session uses the Stage 1 dose', () => {
-    const p = getReturnSessionPrescription(PROGRAM_ID);
-    expect(p.mode).toBe('return');
-    expect(p.items.map((i) => [i.sets, i.reps])).toEqual(EXPECTED[1]);
-  });
-});
-
-describe('validateSuppliedRoutineAgainstRestrictions', () => {
-  const stage1 = getFixedStagePrescription(PROGRAM_ID, 1);
-
-  it('needs human review when no professional advice is recorded', () => {
-    const r = validateSuppliedRoutineAgainstRestrictions(stage1, restrictionsFrom(null, false));
-    expect(r.status).toBe('needs_human_review');
-    expect(r.unreviewedExerciseIds).toHaveLength(4);
-  });
-
-  it('is compatible only when every movement was approved', () => {
-    expect(validateSuppliedRoutineAgainstRestrictions(stage1, restrictionsFrom(approvedAdvice(), false)).status).toBe('compatible');
-  });
-
-  it('surfaces a clinician "not OK" for review instead of building a substitute', () => {
-    const advice = approvedAdvice({ exerciseApprovals: { ...approvedAdvice().exerciseApprovals, 'supported-heel-raise': 'not_ok' } });
-    const r = validateSuppliedRoutineAgainstRestrictions(stage1, restrictionsFrom(advice, false));
-    expect(r.status).toBe('incompatible');
-    expect(r.blockedExerciseIds).toEqual(['supported-heel-raise']);
-    expect(r.reasons.map((x) => x.code)).toContain('routine_not_ok');
-    expect(r.reasons[0]!.zh.length).toBeGreaterThan(0);
-  });
-
-  it('unsafe standing blocks every standing movement — no chair workaround (case 5)', () => {
-    const r = validateSuppliedRoutineAgainstRestrictions(stage1, restrictionsFrom(approvedAdvice(), true));
-    expect(r.status).toBe('incompatible');
-    expect(r.blockedExerciseIds.sort()).toEqual([...EXERCISE_IDS].sort());
-    expect(r.reasons.map((x) => x.code)).toContain('routine_standing_excluded');
-  });
-
-  it('respects a recorded maximum stage', () => {
-    const advice = approvedAdvice({ maxStage: 2 });
-    expect(validateSuppliedRoutineAgainstRestrictions(getFixedStagePrescription(PROGRAM_ID, 2), restrictionsFrom(advice, false)).status).toBe('compatible');
-    expect(validateSuppliedRoutineAgainstRestrictions(getFixedStagePrescription(PROGRAM_ID, 3), restrictionsFrom(advice, false)).status).toBe('incompatible');
-  });
-});
-
-describe('programStatusFromAdvice', () => {
-  it('stays assessment_pending without advice, or when the back history was not assessed', () => {
-    expect(programStatusFromAdvice(null)).toBe('assessment_pending');
-    expect(programStatusFromAdvice(approvedAdvice({ assessedBackHistory: 'unsure' }))).toBe('assessment_pending');
-  });
-  it('stays assessment_pending when any movement was not discussed', () => {
-    const advice = approvedAdvice({ exerciseApprovals: { ...approvedAdvice().exerciseApprovals, 'wall-press-up': 'not_discussed' } });
-    expect(programStatusFromAdvice(advice)).toBe('assessment_pending');
-  });
-  it('pauses for review when a movement is not OK, and is reviewed_for_use only when all are OK', () => {
-    const advice = approvedAdvice({ exerciseApprovals: { ...approvedAdvice().exerciseApprovals, 'wall-press-up': 'not_ok' } });
-    expect(programStatusFromAdvice(advice)).toBe('paused_for_review');
-    expect(programStatusFromAdvice(approvedAdvice())).toBe('reviewed_for_use');
-  });
 });

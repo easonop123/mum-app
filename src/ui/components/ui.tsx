@@ -1,5 +1,4 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
-import type { Reason } from '../../safety/reasons';
 import { useI18n } from '../../i18n/I18n';
 import { AlertIcon, InfoIcon, PauseIcon, PhoneCallIcon } from './Icons';
 import { href } from '../router';
@@ -117,19 +116,6 @@ export function ChoiceGroup<T extends string>({
   );
 }
 
-export function ReasonList({ reasons }: { reasons: Reason[] }) {
-  const { L } = useI18n();
-  const unique = reasons.filter((r, i) => reasons.findIndex((x) => x.code === r.code) === i);
-  if (unique.length === 0) return null;
-  return (
-    <ul>
-      {unique.map((r) => (
-        <li key={r.code}>{L(r)}</li>
-      ))}
-    </ul>
-  );
-}
-
 export function StatusLabel({ kind, children }: { kind: 'safety' | 'pause' | 'info'; children: ReactNode }) {
   const Icon = kind === 'safety' ? AlertIcon : kind === 'pause' ? PauseIcon : InfoIcon;
   return (
@@ -147,13 +133,13 @@ export function HelpNumbers({ compact }: { compact?: boolean }) {
     <div className="stack-sm">
       <a className="btn btn--safety btn--block btn--large" href="tel:111">
         <PhoneCallIcon size={26} />
-        <span>{t.emergency.call111}</span>
+        <span>{t.help.call111}</span>
       </a>
       <a className="btn btn--block" href="tel:0800611116">
         <PhoneCallIcon size={24} />
-        <span>{t.emergency.healthline}</span>
+        <span>{t.help.callHealthline}</span>
       </a>
-      {!compact ? <p className="muted">{t.emergency.callNote}</p> : null}
+      {!compact ? <p className="muted">{t.help.callNote}</p> : null}
     </div>
   );
 }

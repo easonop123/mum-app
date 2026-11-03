@@ -20,7 +20,6 @@ export function ProgressScreen() {
   const practiceDays = new Set(data.sessions.map((s) => s.localDate));
   const learnDays = new Set(data.learningVisits);
   const recent = [...data.sessions].sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1)).slice(0, 10);
-  const notes = data.sessions.filter((s) => s.note).slice(-10).reverse();
 
   const dayCell = (d: string) => {
     const practised = practiceDays.has(d);
@@ -124,24 +123,6 @@ export function ProgressScreen() {
         </section>
       ) : null}
 
-      {notes.length > 0 ? (
-        <section className="stack-sm">
-          <h2>{t.progress.notesTitle}</h2>
-          <ul className="list-plain">
-            {notes.map((s) => (
-              <li key={s.id}>
-                <p className="muted" style={{ margin: 0 }}>
-                  {formatLocalDate(s.localDate, lang)}
-                </p>
-                <p className="pre-wrap" style={{ margin: 0 }}>
-                  {s.note}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
       <EncouragementNote
         value={data.profile.encouragementNote}
         onSave={(v) => void apply((d, c) => updateProfile(d, { encouragementNote: v }, c))}
@@ -216,7 +197,7 @@ function ShareUpdate({ count }: { count: number }) {
         block
         onClick={async () => {
           const r = await shareText(text);
-          setStatus(r === 'copied' ? t.summary.copied : r === 'failed' ? null : null);
+          setStatus(r === 'copied' ? t.progress.copied : null);
         }}
       >
         {t.progress.shareOpen}
@@ -225,7 +206,7 @@ function ShareUpdate({ count }: { count: number }) {
         block
         onClick={async () => {
           const r = await copyText(text);
-          setStatus(r === 'copied' ? t.summary.copied : t.summary.copyFailed);
+          setStatus(r === 'copied' ? t.progress.copied : t.progress.copyFailed);
         }}
       >
         {t.progress.shareCopy}

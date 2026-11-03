@@ -1,5 +1,5 @@
 import catalogue from './exercise-catalogue.json';
-import { EXERCISE_IDS, type ExerciseId, type GoalId, type LocalizedText } from '../domain/types';
+import { EXERCISE_IDS, type ExerciseId, type LocalizedText } from '../domain/types';
 
 export interface ExerciseContent {
   id: ExerciseId;
@@ -15,7 +15,6 @@ export interface ExerciseContent {
   repDefinition: LocalizedText;
   benefit: LocalizedText;
   ifNotSuitable: LocalizedText;
-  goalLinks: Record<Exclude<GoalId, 'own'>, LocalizedText>;
 }
 
 function loadCatalogue(): Record<ExerciseId, ExerciseContent> {

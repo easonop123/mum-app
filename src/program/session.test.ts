@@ -14,8 +14,6 @@ import {
   undoLastSet,
 } from './session';
 
-const checkIn = { newOrWorse: 'no' as const, emergencySigns: null, urgentSigns: null };
-
 function start(stage: 1 | 6 = 6) {
   return createActiveSession({
     id: 'a1',
@@ -24,16 +22,12 @@ function start(stage: 1 | 6 = 6) {
     now: '2026-11-03T00:00:00.000Z',
     localDate: '2026-11-03',
     timezone: 'Pacific/Auckland',
-    checkIn,
   });
 }
 
-const done = { feeling: 'comfortable' as const, controlledMovement: 'yes' as const, couldDoMore: 'yes' as const, effort: null, note: null, symptomCodes: [], stopped: null, holdId: null };
-
 describe('session recording', () => {
   it('expands side leg lift into explicit left and right sets, per side (case 28)', () => {
-    const a = start(6);
-    const side = a.performed[3]!;
+    const side = start(6).performed[3]!;
     expect(side.sets.map((s) => [s.setNumber, s.side, s.targetReps])).toEqual([
       [1, 'left', 8], [1, 'right', 8], [2, 'left', 8], [2, 'right', 8],
     ]);
@@ -41,14 +35,13 @@ describe('session recording', () => {
 
   it('starts with the optional warm-up for full sessions, but not for the tiny session', () => {
     expect(start().phase).toBe('warmup');
-    const tiny = createActiveSession({ id: 't', prescription: getTinySessionPrescription(PROGRAM_ID, 1), planStage: 1, now: 'n', localDate: '2026-11-03', timezone: 'Pacific/Auckland', checkIn });
+    const tiny = createActiveSession({ id: 't', prescription: getTinySessionPrescription(PROGRAM_ID, 1), planStage: 1, now: 'n', localDate: '2026-11-03', timezone: 'Pacific/Auckland' });
     expect(tiny.phase).toBe('exercise');
   });
 
-  it('elapsed time, rest timers and video events never create completed reps (case 11)', () => {
+  it('elapsed time and rest timers never create completed reps (case 11)', () => {
     let a = finishWarmup(start(), 'done', '2026-11-03T00:02:00.000Z');
     a = startRestTimer(a, '2026-11-03T00:03:00.000Z');
-    // Simulate a long time passing / a video ending: there is no API that records reps without a number from a person.
     const later = { ...a, updatedAt: '2026-11-03T05:00:00.000Z' };
     expect(later.performed.every((ex) => ex.sets.every((s) => s.actualReps === null))).toBe(true);
     expect(nextPendingSet(later)).toEqual({ exerciseIndex: 0, setIndex: 0 });
@@ -64,7 +57,7 @@ describe('session recording', () => {
     expect(nextPendingSet(a)).toEqual({ exerciseIndex: 1, setIndex: 0 });
   });
 
-  it('fewer reps and skipped movements are saved as a partial session — never a full dose', () => {
+  it('fewer reps and skipped movements are saved as partial — never the full amount', () => {
     let a = finishWarmup(start(1), 'skipped', 't');
     a = recordSet(a, 0, 0, 5, 't');
     a = recordSet(a, 1, 0, 2, 't');
@@ -73,10 +66,21 @@ describe('session recording', () => {
     a = recordSet(a, 3, 1, 5, 't');
     expect(a.phase).toBe('finish');
     expect(isFullDose(a.performed, a.prescription)).toBe(false);
-    const record = finalizeSession(a, done, 't2');
+    const record = finalizeSession(a, { stopped: false }, 't2');
     expect(record.outcome).toBe('partial');
     expect(record.creditEarned).toBe(false);
-    expect(record.userApprovedChanges).toEqual(['Did fewer repetitions: Wall press-up', 'Skipped: Supported heel raise', 'Skipped the warm-up walk']);
+  });
+
+  it('a complete full practice earns credit; a tiny one never does (case 26)', () => {
+    let a = finishWarmup(start(1), 'done', 't');
+    for (let p = nextPendingSet(a); p; p = nextPendingSet(a)) a = recordSet(a, p.exerciseIndex, p.setIndex, a.performed[p.exerciseIndex]!.sets[p.setIndex]!.targetReps, 't');
+    expect(finalizeSession(a, { stopped: false }, 't').creditEarned).toBe(true);
+    let tiny = createActiveSession({ id: 't', prescription: getTinySessionPrescription(PROGRAM_ID, 1), planStage: 1, now: 'n', localDate: '2026-11-03', timezone: 'Pacific/Auckland' });
+    tiny = recordSet(tiny, 0, 0, 3, 't');
+    tiny = recordSet(tiny, 1, 0, 3, 't');
+    const record = finalizeSession(tiny, { stopped: false }, 't');
+    expect(record.outcome).toBe('full_dose');
+    expect(record.creditEarned).toBe(false);
   });
 
   it('undo reverts the last tap only', () => {
@@ -89,8 +93,8 @@ describe('session recording', () => {
   it('a stopped session keeps its partial sets and never counts as full', () => {
     let a = finishWarmup(start(1), 'done', 't');
     a = recordSet(a, 0, 0, 5, 't');
-    const record = finalizeSession(a, { ...done, feeling: 'new_or_worse', symptomCodes: ['dizzy_unwell'], stopped: 'stopped_symptoms', holdId: 'h' }, 't');
-    expect(record.outcome).toBe('stopped_symptoms');
+    const record = finalizeSession(a, { stopped: true }, 't');
+    expect(record.outcome).toBe('stopped');
     expect(record.performed[0]!.sets[0]!.actualReps).toBe(5);
     expect(record.creditEarned).toBe(false);
   });

@@ -1,6 +1,6 @@
 import { PROGRAM } from '../../content/program';
 import { EXERCISES } from '../../content/exercises';
-import type { ExerciseId, GoalId, Lang, PrescriptionItem, Stage } from '../../domain/types';
+import type { ExerciseId, Lang, PrescriptionItem, Stage } from '../../domain/types';
 import { useI18n } from '../../i18n/I18n';
 import { STAGES } from '../../domain/types';
 
@@ -58,10 +58,9 @@ export function StageTable({ currentStage }: { currentStage?: Stage }) {
 }
 
 /** Technique, how to count, benefit and "if it doesn't feel right" for one movement. */
-export function ExerciseText({ id, goal, compact }: { id: ExerciseId; goal: GoalId | null; compact?: boolean }) {
+export function ExerciseText({ id, compact }: { id: ExerciseId; compact?: boolean }) {
   const { t, L, lang } = useI18n();
   const ex = EXERCISES[id];
-  const goalLink = goal && goal !== 'own' ? ex.goalLinks[goal] : null;
   return (
     <div className="stack-sm">
       <h2>{t.learn.whatToDo}</h2>
@@ -76,11 +75,6 @@ export function ExerciseText({ id, goal, compact }: { id: ExerciseId; goal: Goal
       </p>
       <h2>{t.learn.whyItHelps}</h2>
       <p>{L(ex.benefit)}</p>
-      {goalLink ? (
-        <p>
-          <strong>{t.session.whyGoal}:</strong> {L(goalLink)}
-        </p>
-      ) : null}
       {!compact ? (
         <>
           <h2>{t.learn.ifNotRight}</h2>

@@ -4,16 +4,14 @@ import { StoreProvider, useStore, type StoreProviderProps } from './data/store';
 import { I18nProvider, useI18n } from './i18n/I18n';
 import { LogoMark } from './ui/components/Icons';
 import { href, navigate, useRoute } from './ui/router';
-import { UpdateBanner, type UpdateSource } from './pwa/UpdateBanner';
+import { AutoUpdate, type UpdateSource } from './pwa/UpdateBanner';
 import { TodayScreen } from './ui/screens/Today';
-import { OnboardingScreen } from './ui/screens/Onboarding';
+import { WelcomeScreen } from './ui/screens/Onboarding';
 import { SessionScreen } from './ui/screens/Session';
 import { ProgressScreen } from './ui/screens/Progress';
 import { HelpScreen } from './ui/screens/Help';
 import { LearnScreen, PlanScreen } from './ui/screens/Learn';
 import { AboutScreen, DisplaySettings, InstallScreen, RemindersScreen, ScheduleSettings, SettingsIndex, SourcesScreen } from './ui/screens/Settings';
-import { AdviceScreen, ClinicianPlanScreen, HealthAnswersScreen, RescreenScreen, SummaryScreen } from './ui/screens/HealthScreens';
-import { DumbbellsScreen, SetupScreen } from './ui/screens/Equipment';
 import { DataScreen, RecoveryScreen } from './ui/screens/DataScreen';
 
 export function App({ updateSource = null, store }: { updateSource?: UpdateSource | null; store?: Omit<StoreProviderProps, 'children'> }) {
@@ -64,9 +62,9 @@ function Shell({ updateSource }: { updateSource: UpdateSource | null }) {
   }
 
   const nav = [
-    { to: '/', label: t.nav.today, match: (p: string) => p === '/' || p.startsWith('/session') || p === '/onboarding' },
+    { to: '/', label: t.nav.today, match: (p: string) => p === '/' || p.startsWith('/session') || p === '/welcome' },
     { to: '/progress', label: t.nav.progress, match: (p: string) => p.startsWith('/progress') },
-    { to: '/settings', label: t.nav.settings, match: (p: string) => p.startsWith('/settings') || p.startsWith('/learn') || p === '/plan' || p === '/rescreen' },
+    { to: '/settings', label: t.nav.settings, match: (p: string) => p.startsWith('/settings') || p.startsWith('/learn') || p === '/plan' },
   ];
 
   return (
@@ -116,7 +114,7 @@ function Shell({ updateSource }: { updateSource: UpdateSource | null }) {
           <p className="card card--safety">{t.storageUnavailable}</p>
         </div>
       ) : null}
-      <UpdateBanner source={updateSource} hasActiveSession={data.activeSession !== null} routePath={route.path} />
+      <AutoUpdate source={updateSource} hasActiveSession={data.activeSession !== null} routePath={route.path} />
 
       <main className="app-main" id="main" tabIndex={-1}>
         <Routes path={route.path} segments={route.segments} />
@@ -144,8 +142,9 @@ function Routes({ path, segments }: { path: string; segments: string[] }) {
   switch (first) {
     case undefined:
       return <TodayScreen />;
+    case 'welcome':
     case 'onboarding':
-      return <OnboardingScreen />;
+      return <WelcomeScreen />;
     case 'session':
       return <SessionScreen key={path} mode={second === 'full' || second === 'tiny' ? second : null} />;
     case 'progress':
@@ -156,8 +155,6 @@ function Routes({ path, segments }: { path: string; segments: string[] }) {
       return <LearnScreen key={path} exerciseId={second ?? null} />;
     case 'plan':
       return <PlanScreen />;
-    case 'rescreen':
-      return <RescreenScreen />;
     case 'settings':
       switch (second) {
         case undefined:
@@ -166,18 +163,6 @@ function Routes({ path, segments }: { path: string; segments: string[] }) {
           return <DisplaySettings />;
         case 'schedule':
           return <ScheduleSettings />;
-        case 'health':
-          return <HealthAnswersScreen />;
-        case 'advice':
-          return <AdviceScreen />;
-        case 'clinician-plan':
-          return <ClinicianPlanScreen />;
-        case 'summary':
-          return <SummaryScreen />;
-        case 'setup':
-          return <SetupScreen />;
-        case 'dumbbells':
-          return <DumbbellsScreen />;
         case 'reminders':
           return <RemindersScreen />;
         case 'install':

@@ -1,19 +1,4 @@
-import type {
-  ActiveSession,
-  Answer,
-  CheckInRecord,
-  Effort,
-  PerformedExercise,
-  PerformedSet,
-  Prescription,
-  PrescriptionItem,
-  SessionFeeling,
-  SessionOutcome,
-  SessionRecord,
-  Stage,
-  SymptomCode,
-} from '../domain/types';
-import { EXERCISES } from '../content/exercises';
+import type { ActiveSession, PerformedExercise, PerformedSet, Prescription, PrescriptionItem, SessionOutcome, SessionRecord, Stage } from '../domain/types';
 
 // Pure session-state helpers. Only an explicit person action (a tap passing
 // a number) ever records repetitions: no timer, video event or elapsed time
@@ -39,20 +24,17 @@ export function createActiveSession(params: {
   now: string;
   localDate: string;
   timezone: string;
-  checkIn: CheckInRecord;
 }): ActiveSession {
   const { prescription } = params;
   return {
     id: params.id,
     mode: prescription.mode,
     stage: prescription.stage,
-    planStageAtStart: params.planStage,
     prescription,
     startedAt: params.now,
     localDate: params.localDate,
     timezone: params.timezone,
     contentVersion: prescription.contentVersion,
-    checkIn: params.checkIn,
     // The tiny session is exactly its two movements: no warm-up step.
     phase: prescription.mode === 'tiny' ? 'exercise' : 'warmup',
     exerciseIndex: 0,
@@ -163,80 +145,24 @@ export function anyRepsRecorded(performed: PerformedExercise[]): boolean {
   return performed.some((ex) => ex.sets.some((s) => (s.actualReps ?? 0) > 0));
 }
 
-export interface SessionCompletion {
-  feeling: SessionFeeling | null;
-  controlledMovement: Answer | null;
-  couldDoMore: Answer | null;
-  effort: Effort | null;
-  note: string | null;
-  symptomCodes: SymptomCode[];
-  stopped: 'stopped_symptoms' | 'stopped_choice' | null;
-  holdId: string | null;
-}
-
-/** A session earns progression credit only for a comfortable, controlled, full-dose FULL session. */
-export function earnsCredit(record: Pick<SessionRecord, 'mode' | 'outcome' | 'feeling' | 'controlledMovement' | 'couldDoMore' | 'symptomCodes'>): boolean {
-  return (
-    record.mode === 'full' &&
-    record.outcome === 'full_dose' &&
-    (record.feeling === 'comfortable' || record.feeling === 'tired_ok') &&
-    record.controlledMovement === 'yes' &&
-    record.couldDoMore === 'yes' &&
-    record.symptomCodes.length === 0
-  );
-}
-
-/** Comfortable completion (used for "last comfortable stage" and the return session). */
-export function isComfortableFullDose(record: Pick<SessionRecord, 'outcome' | 'feeling' | 'symptomCodes'>): boolean {
-  return (
-    record.outcome === 'full_dose' &&
-    (record.feeling === 'comfortable' || record.feeling === 'tired_ok') &&
-    record.symptomCodes.length === 0
-  );
-}
-
-function describeChanges(active: ActiveSession): string[] {
-  const changes: string[] = [];
-  active.performed.forEach((ex) => {
-    const name = EXERCISES[ex.exerciseId].name.en;
-    if (ex.skipped) {
-      changes.push(`Skipped: ${name}`);
-      return;
-    }
-    const fewer = ex.sets.filter((s) => s.actualReps !== null && s.actualReps < s.targetReps);
-    if (fewer.length > 0) changes.push(`Did fewer repetitions: ${name}`);
-  });
-  if (active.warmup === 'skipped') changes.push('Skipped the warm-up walk');
-  return changes;
-}
-
-export function finalizeSession(active: ActiveSession, completion: SessionCompletion, now: string): SessionRecord {
+/** Saves what was actually done. A stopped or partial practice never counts as the full amount. */
+export function finalizeSession(active: ActiveSession, options: { stopped: boolean }, now: string): SessionRecord {
   const fullDose = isFullDose(active.performed, active.prescription);
-  const outcome: SessionOutcome = completion.stopped ?? (fullDose ? 'full_dose' : 'partial');
-  const base = {
+  const outcome: SessionOutcome = options.stopped ? 'stopped' : fullDose ? 'full_dose' : 'partial';
+  return {
     id: active.id,
     mode: active.mode,
     programId: active.prescription.programId,
     contentVersion: active.contentVersion,
     stage: active.stage,
-    planStageAtStart: active.planStageAtStart,
     prescription: active.prescription,
     startedAt: active.startedAt,
     endedAt: now,
     localDate: active.localDate,
     timezone: active.timezone,
-    checkIn: active.checkIn,
     warmup: active.warmup,
     performed: active.performed,
     outcome,
-    feeling: completion.feeling,
-    controlledMovement: completion.controlledMovement,
-    couldDoMore: completion.couldDoMore,
-    effort: completion.effort,
-    symptomCodes: completion.symptomCodes,
-    note: completion.note && completion.note.trim() ? completion.note.trim().slice(0, 1000) : null,
-    holdId: completion.holdId,
-    userApprovedChanges: describeChanges(active),
+    creditEarned: active.mode === 'full' && outcome === 'full_dose',
   };
-  return { ...base, creditEarned: earnsCredit(base) };
 }

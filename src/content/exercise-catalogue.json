@@ -49,24 +49,6 @@
       "ifNotSuitable": {
         "en": "If it doesn't feel right, stop and talk it over with your GP or physio. The app won't swap in a different exercise.",
         "zh": "如果这个动作不合适，先停下，和医生或物理治疗师商量。应用不会自动换成别的动作。"
-      },
-      "goalLinks": {
-        "chair_rising": {
-          "en": "This is the getting-up-from-a-chair movement itself, practised slowly.",
-          "zh": "这就是从椅子上起身的动作，慢慢地练。"
-        },
-        "carrying": {
-          "en": "Thighs and hips do much of the work when you lift and carry light things.",
-          "zh": "拿起和提着轻的东西时，大腿和臀部出了很多力。"
-        },
-        "standing": {
-          "en": "Thigh and hip muscles help hold you up when you stand.",
-          "zh": "站着的时候，大腿和臀部的肌肉在支撑你。"
-        },
-        "confidence": {
-          "en": "Practising getting up smoothly can make an everyday movement feel more familiar.",
-          "zh": "多练习平稳起身，日常动作会更熟悉、更有底。"
-        }
       }
     },
     {
@@ -115,24 +97,6 @@
       "ifNotSuitable": {
         "en": "If it doesn't feel right, stop and talk it over with your GP or physio. The app won't move you on to a harder version, such as on the floor or a counter.",
         "zh": "如果不合适，先停下，和医生或物理治疗师商量。应用不会自动换成更难的做法（比如在地上或台面上做）。"
-      },
-      "goalLinks": {
-        "chair_rising": {
-          "en": "Arm strength helps when you push up from a chair with your hands.",
-          "zh": "用手撑着从椅子上起身时，会用到手臂的力量。"
-        },
-        "carrying": {
-          "en": "Your chest and arms work when you hold and carry things.",
-          "zh": "拿着、提着东西时，胸部和手臂都在出力。"
-        },
-        "standing": {
-          "en": "This one is mainly for your arms and chest. It rounds out the routine.",
-          "zh": "这个动作主要练手臂和胸部，让整套练习更全面一些。"
-        },
-        "confidence": {
-          "en": "Pushing comes up in daily life, for example pushing open a heavy door.",
-          "zh": "日常生活里常要用到推的力量，比如推开一扇重门。"
-        }
       }
     },
     {
@@ -181,24 +145,6 @@
       "ifNotSuitable": {
         "en": "If it doesn't feel right, stop and talk it over with your GP or physio. The app won't swap in a seated version that nobody has shown you.",
         "zh": "如果不合适，先停下，和医生或物理治疗师商量。应用不会换成没人示范过的坐姿做法。"
-      },
-      "goalLinks": {
-        "chair_rising": {
-          "en": "Your calves help with standing and walking once you're up.",
-          "zh": "站起来以后，站立和走路都要靠小腿出力。"
-        },
-        "carrying": {
-          "en": "Your calves work every time you walk, including when you carry something.",
-          "zh": "走路时小腿都在出力，提着东西走路时也一样。"
-        },
-        "standing": {
-          "en": "Your calves work whenever you stand and walk.",
-          "zh": "站立和走路时，小腿一直在出力。"
-        },
-        "confidence": {
-          "en": "Calves support the everyday walking and standing you already do.",
-          "zh": "小腿支持你每天的走路和站立。"
-        }
       }
     },
     {
@@ -247,24 +193,6 @@
       "ifNotSuitable": {
         "en": "If it doesn't feel right, stop and talk it over with your GP or physio. Don't push or stretch through symptoms.",
         "zh": "如果不合适，先停下，和医生或物理治疗师商量。不要忍着不舒服继续拉伸或用力。"
-      },
-      "goalLinks": {
-        "chair_rising": {
-          "en": "The side-of-hip muscles help control your movement as you get up and stand.",
-          "zh": "起身和站立时，髋部侧面的肌肉帮助控制动作。"
-        },
-        "carrying": {
-          "en": "These muscles help control standing and moving, including when you carry things.",
-          "zh": "这些肌肉帮助控制站立和移动，提东西时也会用到。"
-        },
-        "standing": {
-          "en": "These muscles help control how you stand and move.",
-          "zh": "这些肌肉帮助控制站立和移动。"
-        },
-        "confidence": {
-          "en": "These muscles help control everyday standing and moving.",
-          "zh": "这些肌肉帮助控制日常的站立和移动。"
-        }
       }
     }
   ]

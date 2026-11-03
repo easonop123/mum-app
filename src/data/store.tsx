@@ -77,6 +77,9 @@ export function StoreProvider({ children, now = () => new Date(), initialData }:
         dataRef.current = result.data;
         setData(result.data);
         setStatus({ kind: 'ready', persistence: 'indexeddb' });
+        // Write migrated data back straight away, so fields an older version
+        // stored (e.g. removed health answers) don't linger on the device.
+        if (result.migratedFrom !== null) await persist();
       } else if (result.status === 'empty') {
         const fresh = createInitialAppData(now().toISOString());
         dataRef.current = fresh;

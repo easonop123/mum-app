@@ -10,7 +10,7 @@ export function renderProgramMarkdown(program, catalogue) {
   lines.push('');
   lines.push(`# Program ${program.programId} (version ${program.version})`);
   lines.push('');
-  lines.push(`Default status: \`${program.initialStatus}\`. The personal workout flow stays pending until a GP or physiotherapist has assessed the person's back history (and anything the screening flags) and confirmed the movements and progression are appropriate under that advice.`);
+  lines.push(`Supplied initial status: \`${program.initialStatus}\`. In this version of the app the owner chose to make the routine available straight away: there is no screening, approval or check-in step.`);
   lines.push('');
   lines.push('> These starter counts, progression checkpoints and UX choices are **conservative product proposals, not a medically validated prescription** for any individual. Changes require an explicit content revision by the owner with appropriate professional guidance.');
   lines.push('');
@@ -38,7 +38,7 @@ export function renderProgramMarkdown(program, catalogue) {
     lines.push(`| ${dose.stage} | ${cells.join(' | ')} |`);
   }
   lines.push('');
-  lines.push(`Each stage needs at least ${program.minimumFullSessionsPerStage} completed full sessions plus comfortable next-day responses, and the person must actively choose to advance (default: "Keep this amount / 保持这个量"). Stages are not calendar weeks. Stage 8 is maintenance plus a program-review invitation — there is no stage 9 and no weight increase.`);
+  lines.push(`After ${program.minimumFullSessionsPerStage} completed full practices at a stage, the app offers the next stage; the person chooses (default: "Keep this amount / 保持这个量"), and can also pick any stage on the Plan page. Stages are not calendar weeks. Stage 8 is maintenance — there is no stage 9 and no weight increase.`);
   lines.push('');
   lines.push('## Tiny session');
   lines.push('');

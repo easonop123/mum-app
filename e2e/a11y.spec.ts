@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { beginPractice, completeOnboarding, readyToPractise, startFresh } from './helpers';
+import { beginPractice, letsStart, readyToPractise, startFresh } from './helpers';
 
 async function expectNoSeriousViolations(page: Page, label: string) {
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
@@ -11,12 +11,12 @@ async function expectNoSeriousViolations(page: Page, label: string) {
   expect(serious, `${label}: ${serious.map((v) => `${v.id}: ${v.help}`).join('; ')}`).toEqual([]);
 }
 
-test('axe: onboarding, Today, learn, plan, settings, help — English and Chinese (case 19)', async ({ page }) => {
+test('axe: welcome, Today, learn, plan, settings, help — English and Chinese (case 19)', async ({ page }) => {
   await startFresh(page);
   await expectNoSeriousViolations(page, 'welcome');
-  await completeOnboarding(page);
-  await expectNoSeriousViolations(page, 'today (waiting)');
-  for (const route of ['/#/learn', '/#/learn/chair-sit-to-stand', '/#/plan', '/#/settings', '/#/settings/advice', '/#/settings/summary', '/#/settings/data', '/#/help', '/#/progress']) {
+  await letsStart(page);
+  await expectNoSeriousViolations(page, 'today');
+  for (const route of ['/#/learn', '/#/learn/chair-sit-to-stand', '/#/plan', '/#/settings', '/#/settings/display', '/#/settings/data', '/#/settings/reminders', '/#/help', '/#/progress']) {
     await page.goto(route);
     await expect(page.locator('h1')).toBeVisible();
     await expectNoSeriousViolations(page, route);
@@ -59,23 +59,23 @@ test('320 px wide with 200% text: no hidden safety actions or sideways scrolling
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(1);
   await stop.click();
-  await expect(page.getByRole('heading', { name: 'Stop now' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Stop now?' })).toBeVisible();
 });
 
 test('keyboard only: reach and activate primary actions with visible focus (case 19)', async ({ page }) => {
   await startFresh(page);
-  const target = page.getByRole('button', { name: "Yes, let's have a look" });
+  const target = page.getByRole('button', { name: "Let's start" });
   for (let i = 0; i < 12 && !(await target.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab');
   await expect(target).toBeFocused();
   const outline = await target.evaluate((el) => getComputedStyle(el).outlineStyle);
   expect(outline).not.toBe('none');
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Which language?' })).toBeVisible();
+  await expect(page.getByRole('link', { name: "Start today's practice" })).toBeVisible();
 });
 
 test('reduced motion is respected (case 19)', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await startFresh(page);
-  const duration = await page.getByRole('button', { name: "Yes, let's have a look" }).evaluate((el) => getComputedStyle(el).transitionDuration);
+  const duration = await page.getByRole('button', { name: "Let's start" }).evaluate((el) => getComputedStyle(el).transitionDuration);
   expect(['0s', '0s, 0s']).toContain(duration);
 });

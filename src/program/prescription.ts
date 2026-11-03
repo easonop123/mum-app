@@ -1,18 +1,6 @@
 import { PROGRAM, SIDE_LEG_LIFT_ID, type ProgramDefinition } from '../content/program';
 import { CONTENT_VERSION } from '../content/version';
-import { EXERCISES } from '../content/exercises';
-import {
-  PROGRAM_ID,
-  isExerciseId,
-  isStage,
-  type ExerciseId,
-  type PrivateAdviceRecord,
-  type Prescription,
-  type PrescriptionItem,
-  type RoutineRestrictions,
-  type Stage,
-} from '../domain/types';
-import { reason, type Reason } from '../safety/reasons';
+import { PROGRAM_ID, isExerciseId, isStage, type ExerciseId, type Prescription, type PrescriptionItem } from '../domain/types';
 
 export class ProgramContentError extends Error {
   readonly code: 'unsupported_program' | 'unsupported_stage' | 'invalid_content';
@@ -46,11 +34,7 @@ function itemFor(program: ProgramDefinition, exerciseId: ExerciseId, sets: numbe
  * an unsupported program or stage — it never interpolates, invents a stage 9,
  * or adds load.
  */
-export function getFixedStagePrescription(
-  programId: string,
-  stage: number,
-  program: ProgramDefinition = PROGRAM,
-): Prescription {
+export function getFixedStagePrescription(programId: string, stage: number, program: ProgramDefinition = PROGRAM): Prescription {
   assertProgram(programId, program);
   if (!isStage(stage)) {
     throw new ProgramContentError('unsupported_stage', `Unsupported stage: ${String(stage)}`);
@@ -78,11 +62,7 @@ export function getFixedStagePrescription(
 }
 
 /** Exactly three sit-to-stands, at least 60 s rest, three wall presses. Never progression credit. */
-export function getTinySessionPrescription(
-  programId: string,
-  planStage: number,
-  program: ProgramDefinition = PROGRAM,
-): Prescription {
+export function getTinySessionPrescription(programId: string, planStage: number, program: ProgramDefinition = PROGRAM): Prescription {
   assertProgram(programId, program);
   if (!isStage(planStage)) {
     throw new ProgramContentError('unsupported_stage', `Unsupported stage: ${String(planStage)}`);
@@ -103,91 +83,6 @@ export function getTinySessionPrescription(
   };
 }
 
-/** A long-gap return session uses the Stage 1 dose. */
-export function getReturnSessionPrescription(programId: string, program: ProgramDefinition = PROGRAM): Prescription {
-  return { ...getFixedStagePrescription(programId, 1, program), mode: 'return' };
-}
-
-export interface ReviewDecision {
-  status: 'compatible' | 'needs_human_review' | 'incompatible';
-  blockedExerciseIds: ExerciseId[];
-  unreviewedExerciseIds: ExerciseId[];
-  reasons: Reason[];
-}
-
-/**
- * Checks a supplied prescription against recorded restrictions. It never
- * builds a substitute workout: incompatible items are surfaced for human
- * (owner + clinician) review instead.
- */
-export function validateSuppliedRoutineAgainstRestrictions(
-  prescription: Prescription,
-  restrictions: RoutineRestrictions,
-): ReviewDecision {
-  const ids = prescription.items.map((i) => i.exerciseId);
-  const blocked = new Set<ExerciseId>();
-  const unreviewed = new Set<ExerciseId>();
-  const reasons: Reason[] = [];
-
-  if (restrictions.standingExercisesExcluded) {
-    const standing = ids.filter((id) => EXERCISES[id].involvesStanding);
-    standing.forEach((id) => blocked.add(id));
-    if (standing.length > 0) reasons.push(reason('routine_standing_excluded'));
-  }
-
-  if (restrictions.exerciseApprovals === null) {
-    ids.forEach((id) => unreviewed.add(id));
-    reasons.push(reason('routine_no_advice'));
-  } else {
-    const approvals = restrictions.exerciseApprovals;
-    const notOk = ids.filter((id) => approvals[id] === 'not_ok');
-    const notDiscussed = ids.filter((id) => approvals[id] !== 'ok' && approvals[id] !== 'not_ok');
-    notOk.forEach((id) => blocked.add(id));
-    notDiscussed.forEach((id) => unreviewed.add(id));
-    if (notOk.length > 0) reasons.push(reason('routine_not_ok'));
-    if (notDiscussed.length > 0) reasons.push(reason('routine_not_discussed'));
-  }
-
-  if (restrictions.maxStage !== null && prescription.mode !== 'tiny' && prescription.stage > restrictions.maxStage) {
-    ids.forEach((id) => blocked.add(id));
-    reasons.push(reason('routine_above_max_stage'));
-  }
-
-  const status: ReviewDecision['status'] =
-    blocked.size > 0 ? 'incompatible' : unreviewed.size > 0 ? 'needs_human_review' : 'compatible';
-  return {
-    status,
-    blockedExerciseIds: [...blocked],
-    unreviewedExerciseIds: [...unreviewed].filter((id) => !blocked.has(id)),
-    reasons,
-  };
-}
-
-export function restrictionsFrom(
-  advice: PrivateAdviceRecord | null,
-  standingExercisesExcluded: boolean,
-): RoutineRestrictions {
-  return {
-    standingExercisesExcluded,
-    exerciseApprovals: advice ? advice.exerciseApprovals : null,
-    maxStage: advice ? advice.maxStage : null,
-  };
-}
-
-/** Program status follows only from a recorded professional-advice record. */
-export function programStatusFromAdvice(advice: PrivateAdviceRecord | null): 'assessment_pending' | 'reviewed_for_use' | 'paused_for_review' {
-  if (!advice) return 'assessment_pending';
-  if (advice.assessedBackHistory !== 'yes') return 'assessment_pending';
-  const approvals = Object.values(advice.exerciseApprovals);
-  if (approvals.some((a) => a === 'not_ok')) return 'paused_for_review';
-  if (approvals.length !== PROGRAM.exerciseOrder.length || approvals.some((a) => a !== 'ok')) return 'assessment_pending';
-  return 'reviewed_for_use';
-}
-
 export function totalTargetReps(prescription: Prescription): number {
   return prescription.items.reduce((sum, item) => sum + item.sets * item.reps * (item.perSide ? 2 : 1), 0);
-}
-
-export function isPrescriptionStage(value: unknown): value is Stage {
-  return isStage(value);
 }

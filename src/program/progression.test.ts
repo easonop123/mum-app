@@ -1,176 +1,111 @@
 import { describe, expect, it } from 'vitest';
-import { STAGES, type NextDayCheck, type Plan, type SessionRecord } from '../domain/types';
+import { STAGES, type Plan } from '../domain/types';
+import { addDays } from '../lib/dates';
 import {
-  applyNextDayToPlan,
+  LONG_GAP_DAYS,
+  ProgressionError,
   applySessionToPlan,
   applyUserAcceptedStage,
+  chooseStage,
   declineStageOffer,
+  gapRestartSuggestion,
   getNextStageOffer,
-  ProgressionError,
-  type ProgressionContext,
+  lastPracticeDate,
+  restartAtStageOne,
 } from './progression';
-import { answeredCheck, makePlan, makeSession, pendingCheck } from '../../tests/factories';
+import { makePlan, makeSession } from '../../tests/factories';
 
-const OK: ProgressionContext = {
-  programStatus: 'reviewed_for_use',
-  hasUnresolvedHold: false,
-  safetyState: 'clinician_guided_plan',
-  progressionApproved: 'yes',
-  maxStage: null,
-};
-
-/** Two credited full sessions at `stage`, with the given next-day responses. */
-function twoCredited(stage: Plan['stage'], responses: Array<NextDayCheck['response'] | 'pending'> = ['usual', 'usual']) {
-  const s1 = makeSession({ stage, localDate: '2026-11-17' });
-  const s2 = makeSession({ stage, localDate: '2026-11-20' });
+function withFullPractices(stage: Plan['stage'], count = 2) {
   let plan = makePlan({ stage });
-  plan = applySessionToPlan(plan, s1, s1.endedAt);
-  plan = applySessionToPlan(plan, s2, s2.endedAt);
-  const checks: NextDayCheck[] = [s1, s2].map((s, i) => {
-    const r = responses[i];
-    return r === 'pending' || r === undefined || r === null ? pendingCheck(s.id, s.localDate) : answeredCheck(s.id, s.localDate, r);
-  });
-  return { plan, sessions: [s1, s2], checks };
+  const sessions = Array.from({ length: count }, (_, i) => makeSession({ stage, localDate: addDays('2026-11-03', i * 3) }));
+  for (const s of sessions) plan = applySessionToPlan(plan, s);
+  return { plan, sessions };
 }
 
-describe('getNextStageOffer — exact stage-transition rules', () => {
-  it('credits only comfortable, controlled, full-dose FULL sessions', () => {
-    const { plan, sessions } = twoCredited(1);
-    expect(plan.stageFullSessionCredits).toEqual(sessions.map((s) => s.id));
+describe('stage offers — always the person’s choice', () => {
+  it('needs two full practices at the stage before offering the next stage', () => {
+    const one = withFullPractices(1, 1);
+    expect(getNextStageOffer(one)).toMatchObject({ kind: 'hold', holdReason: 'need_more_sessions', fullPractices: 1 });
+    const two = withFullPractices(1, 2);
+    expect(getNextStageOffer(two)).toMatchObject({ kind: 'offer', fromStage: 1, toStage: 2 });
   });
 
-  it('offers only the next supplied stage, defaulting to "keep"', () => {
-    const { plan, sessions, checks } = twoCredited(3);
-    const offer = getNextStageOffer({ plan, sessions }, checks, OK);
-    expect(offer).toMatchObject({ kind: 'offer', fromStage: 3, toStage: 4, defaultChoice: 'keep' });
+  it('computing an offer never changes the stage (no automatic progression)', () => {
+    const { plan, sessions } = withFullPractices(3);
+    getNextStageOffer({ plan, sessions });
+    expect(plan.stage).toBe(3);
   });
 
-  it('two comfortable exposures alone never auto-advance; missing next-day feedback holds (case 7)', () => {
-    const { plan, sessions, checks } = twoCredited(1, ['usual', 'pending']);
-    const offer = getNextStageOffer({ plan, sessions }, checks, OK);
-    expect(offer).toMatchObject({ kind: 'hold', holdReason: 'next_day_missing' });
-    expect(plan.stage).toBe(1); // nothing changed by computing an offer
-    expect(getNextStageOffer({ plan, sessions }, [], OK)).toMatchObject({ kind: 'hold', holdReason: 'next_day_missing' });
-  });
-
-  it('"can\'t remember" counts as missing information → hold', () => {
-    const { plan, sessions, checks } = twoCredited(1, ['usual', 'cant_remember']);
-    expect(getNextStageOffer({ plan, sessions }, checks, OK)).toMatchObject({ kind: 'hold', holdReason: 'next_day_missing' });
-  });
-
-  it('a worse next day blocks the offer', () => {
-    const { plan, sessions, checks } = twoCredited(1, ['usual', 'worse']);
-    expect(getNextStageOffer({ plan, sessions }, checks, OK)).toMatchObject({ kind: 'hold', holdReason: 'next_day_not_usual' });
-  });
-
-  it('a safety hold or non-workout state blocks offers (case 7)', () => {
-    const { plan, sessions, checks } = twoCredited(1);
-    expect(getNextStageOffer({ plan, sessions }, checks, { ...OK, hasUnresolvedHold: true })).toMatchObject({ kind: 'hold', holdReason: 'safety_hold' });
-    expect(getNextStageOffer({ plan, sessions }, checks, { ...OK, safetyState: 'review_before_program' })).toMatchObject({ kind: 'hold' });
-    expect(getNextStageOffer({ plan, sessions }, checks, { ...OK, programStatus: 'assessment_pending' })).toMatchObject({ kind: 'hold', holdReason: 'program_not_reviewed' });
-  });
-
-  it('progression needs recorded approval and respects a recorded maximum stage', () => {
-    const { plan, sessions, checks } = twoCredited(2);
-    expect(getNextStageOffer({ plan, sessions }, checks, { ...OK, progressionApproved: 'not_discussed' })).toMatchObject({ holdReason: 'progression_not_approved' });
-    expect(getNextStageOffer({ plan, sessions }, checks, { ...OK, maxStage: 2 })).toMatchObject({ holdReason: 'max_stage' });
-  });
-
-  it('tiny and partial sessions never earn credit (case 26)', () => {
+  it('tiny, partial and stopped practices never count (case 26)', () => {
     let plan = makePlan({ stage: 1 });
-    const tiny1 = makeSession({ mode: 'tiny', localDate: '2026-11-17' });
-    const tiny2 = makeSession({ mode: 'tiny', localDate: '2026-11-20' });
-    const partial = makeSession({ localDate: '2026-11-24', repsFor: (t) => t - 1 });
-    for (const s of [tiny1, tiny2, partial]) plan = applySessionToPlan(plan, s, s.endedAt);
-    expect(tiny1.creditEarned || tiny2.creditEarned || partial.creditEarned).toBe(false);
-    expect(partial.outcome).toBe('partial');
+    const sessions = [
+      makeSession({ mode: 'tiny', localDate: '2026-11-03' }),
+      makeSession({ localDate: '2026-11-06', repsFor: (t) => t - 1 }),
+      makeSession({ localDate: '2026-11-10', stopped: true }),
+    ];
+    for (const s of sessions) plan = applySessionToPlan(plan, s);
     expect(plan.stageFullSessionCredits).toEqual([]);
-    const checks = [tiny1, tiny2, partial].map((s) => answeredCheck(s.id, s.localDate, 'usual'));
-    expect(getNextStageOffer({ plan, sessions: [tiny1, tiny2, partial] }, checks, OK)).toMatchObject({ holdReason: 'need_more_sessions' });
+    expect(getNextStageOffer({ plan, sessions })).toMatchObject({ kind: 'hold', holdReason: 'need_more_sessions' });
   });
 
-  it('sessions without controlled movement or spare repetitions do not earn credit', () => {
-    expect(makeSession({ localDate: '2026-11-17', controlled: 'unsure' }).creditEarned).toBe(false);
-    expect(makeSession({ localDate: '2026-11-17', couldDoMore: 'no' }).creditEarned).toBe(false);
-  });
-
-  it('stage 8 is maintenance with a program-review invitation — never stage 9 (case 29)', () => {
-    const { plan, sessions, checks } = twoCredited(8);
-    const offer = getNextStageOffer({ plan, sessions }, checks, OK);
-    expect(offer.kind).toBe('maintenance');
-    expect(JSON.stringify(offer)).not.toMatch(/"toStage":9|kg/);
-  });
-
-  it('every reachable offer is exactly +1 within the supplied 8 stages', () => {
+  it('every offer is exactly the next supplied stage; stage 8 is maintenance, never stage 9 (cases 8, 29)', () => {
     for (const stage of STAGES.slice(0, 7)) {
-      const { plan, sessions, checks } = twoCredited(stage);
-      const offer = getNextStageOffer({ plan, sessions }, checks, OK);
-      expect(offer).toMatchObject({ kind: 'offer', toStage: stage + 1 });
+      expect(getNextStageOffer(withFullPractices(stage))).toMatchObject({ kind: 'offer', toStage: stage + 1 });
     }
+    expect(getNextStageOffer(withFullPractices(8))).toEqual({ kind: 'maintenance', stage: 8 });
   });
-});
 
-describe('accepting and declining', () => {
-  it('accepting applies exactly the next stage and resets credits', () => {
-    const { plan, sessions, checks } = twoCredited(5);
-    const offer = getNextStageOffer({ plan, sessions }, checks, OK);
-    const next = applyUserAcceptedStage(plan, offer, '2026-11-21T00:00:00.000Z');
+  it('accepting moves exactly one stage and resets the count', () => {
+    const { plan, sessions } = withFullPractices(5);
+    const next = applyUserAcceptedStage(plan, getNextStageOffer({ plan, sessions }), '2026-11-20T00:00:00.000Z');
     expect(next.stage).toBe(6);
     expect(next.stageFullSessionCredits).toEqual([]);
-    expect(next.progression.lastComfortableStage).toBe(5);
     expect(next.progression.stageChanges.at(-1)).toMatchObject({ from: 5, to: 6, reason: 'user_accepted_offer' });
   });
 
-  it('stale or non-offers fail closed', () => {
-    const { plan, sessions, checks } = twoCredited(2);
-    const offer = getNextStageOffer({ plan, sessions }, checks, OK);
+  it('stale or invalid offers fail closed', () => {
+    const { plan, sessions } = withFullPractices(2);
+    const offer = getNextStageOffer({ plan, sessions });
     expect(() => applyUserAcceptedStage({ ...plan, stage: 3 }, offer, 'x')).toThrow(ProgressionError);
-    expect(() => applyUserAcceptedStage(plan, { kind: 'hold', stage: 2, holdReason: 'need_more_sessions', reasons: [] }, 'x')).toThrow(ProgressionError);
-    expect(() => applyUserAcceptedStage(plan, { ...(offer as Extract<typeof offer, { kind: 'offer' }>), toStage: 4 }, 'x')).toThrow(ProgressionError);
+    expect(() => applyUserAcceptedStage(plan, { kind: 'maintenance', stage: 8 }, 'x')).toThrow(ProgressionError);
   });
 
-  it('declining preserves the plan, with positive copy and no repeat nagging (case 9)', () => {
-    const { plan, sessions, checks } = twoCredited(2);
-    const offer = getNextStageOffer({ plan, sessions }, checks, OK);
-    const kept = declineStageOffer(plan, offer, '2026-11-21T00:00:00.000Z');
+  it('"Keep this amount" preserves the plan and is not asked again for the same practices (case 9)', () => {
+    const { plan, sessions } = withFullPractices(2);
+    const offer = getNextStageOffer({ plan, sessions });
+    const kept = declineStageOffer(plan, offer, '2026-11-20T00:00:00.000Z');
     expect(kept.stage).toBe(2);
-    expect(kept.stageFullSessionCredits).toEqual(plan.stageFullSessionCredits);
-    const after = getNextStageOffer({ plan: kept, sessions }, checks, OK);
-    expect(after).toMatchObject({ kind: 'hold', holdReason: 'kept_amount' });
-    const text = after.reasons.map((r) => `${r.en} ${r.zh}`).join(' ');
-    expect(text).toMatch(/completely fine/);
-    expect(text).toContain('可以保持这个量');
-    expect(text).not.toMatch(/fail|lazy|missed|失败|清零/i);
+    expect(getNextStageOffer({ plan: kept, sessions })).toMatchObject({ kind: 'hold', holdReason: 'kept_amount' });
+    // After another full practice, the choice is offered again.
+    const more = makeSession({ stage: 2, localDate: '2026-11-24' });
+    expect(getNextStageOffer({ plan: applySessionToPlan(kept, more), sessions: [...sessions, more] }).kind).toBe('offer');
+  });
+
+  it('the person can choose any supplied stage herself, and only those', () => {
+    const plan = makePlan({ stage: 4 });
+    expect(chooseStage(plan, 2, 'now').stage).toBe(2);
+    expect(chooseStage(plan, 7, 'now').progression.stageChanges.at(-1)).toMatchObject({ from: 4, to: 7, reason: 'manual' });
+    expect(() => chooseStage(plan, 9, 'now')).toThrow(ProgressionError);
+    expect(() => chooseStage(plan, 0, 'now')).toThrow(ProgressionError);
   });
 });
 
-describe('applySessionToPlan', () => {
-  it('"too much" without symptoms returns to the previous comfortable stage next time', () => {
-    const plan = makePlan({ stage: 4 }, { lastComfortableStage: 3 });
-    const hard = makeSession({ stage: 4, localDate: '2026-11-24', feeling: 'too_much', repsFor: (t) => t - 2 });
-    const next = applySessionToPlan(plan, hard, hard.endedAt);
-    expect(next.stage).toBe(3);
-    expect(next.progression.stageChanges.at(-1)?.reason).toBe('too_much_step_down');
+describe('after a long break (case 30)', () => {
+  it('suggests (never forces) starting again at Stage 1 after 14 days or more', () => {
+    const plan = makePlan({ stage: 5 });
+    const last = makeSession({ stage: 5, localDate: '2026-11-03' });
+    expect(gapRestartSuggestion(plan, [last], addDays('2026-11-03', LONG_GAP_DAYS - 1))).toBeNull();
+    expect(gapRestartSuggestion(plan, [last], addDays('2026-11-03', LONG_GAP_DAYS))).toEqual({ gapDays: 14, currentStage: 5 });
+    const restarted = restartAtStageOne(plan, 'now');
+    expect(restarted.stage).toBe(1);
+    expect(restarted.progression.stageChanges.at(-1)?.reason).toBe('gap_restart');
   });
 
-  it('concerning symptoms do not merely reduce the dose (holds handle them) and clear credits', () => {
-    const plan = makePlan({ stage: 4, stageFullSessionCredits: ['a'] }, { lastComfortableStage: 3 });
-    const s = makeSession({ stage: 4, localDate: '2026-11-24', feeling: 'new_or_worse', symptomCodes: ['back_pain_worse_sharp'] });
-    const next = applySessionToPlan(plan, s, s.endedAt);
-    expect(next.stage).toBe(4);
-    expect(next.stageFullSessionCredits).toEqual([]);
-  });
-
-  it('a comfortable next day records the last comfortable stage', () => {
-    const plan = makePlan({ stage: 2 });
-    const s = makeSession({ stage: 2, localDate: '2026-11-24' });
-    expect(applyNextDayToPlan(plan, s, 'usual').progression.lastComfortableStage).toBe(2);
-    expect(applyNextDayToPlan(plan, s, 'worse').progression.lastComfortableStage).toBeNull();
-  });
-
-  it('tiny sessions never change the plan', () => {
-    const plan = makePlan({ stage: 3 });
-    const tiny: SessionRecord = makeSession({ mode: 'tiny', stage: 3, localDate: '2026-11-24' });
-    expect(applySessionToPlan(plan, tiny, tiny.endedAt)).toBe(plan);
+  it('no suggestion at Stage 1, before any practice, or from tiny practices alone', () => {
+    expect(gapRestartSuggestion(makePlan({ stage: 1 }), [makeSession({ localDate: '2026-10-01' })], '2026-11-30')).toBeNull();
+    expect(gapRestartSuggestion(makePlan({ stage: 3 }), [], '2026-11-30')).toBeNull();
+    const tiny = makeSession({ mode: 'tiny', stage: 3, localDate: '2026-11-25' });
+    const full = makeSession({ stage: 3, localDate: '2026-11-01' });
+    expect(lastPracticeDate([full, tiny])).toBe('2026-11-01');
   });
 });

@@ -3,7 +3,6 @@ import { SOURCES } from '../../content/sources';
 import { CONTENT_REVIEW_DATE } from '../../content/version';
 import { PROGRAM } from '../../content/program';
 import { VIDEO_ENTRIES, EDUCATION_ENTRIES, formatDuration } from '../../content/videos';
-import type { GoalId } from '../../domain/types';
 import { setScheduleDetails, updateProfile } from '../../data/actions';
 import { DEFAULT_TIMEZONE } from '../../data/defaults';
 import { useStore } from '../../data/store';
@@ -15,7 +14,7 @@ import { findVoice, speak, speechSupported, voicesReady } from '../../lib/speech
 import { nextScheduledDay } from '../../program/schedule';
 import { BackLink, Button, ChoiceGroup, LinkButton, Page } from '../components/ui';
 import { href } from '../router';
-import { DaysPicker, CueStep, GoalStep } from './Onboarding';
+import { DaysPicker } from './Onboarding';
 
 export function SettingsIndex() {
   const { t } = useI18n();
@@ -25,12 +24,6 @@ export function SettingsIndex() {
     ['/settings/schedule', s.schedule],
     ['/plan', s.plan],
     ['/learn', s.learn],
-    ['/settings/health', s.health],
-    ['/settings/advice', s.advice],
-    ['/settings/clinician-plan', s.clinicianPlan],
-    ['/settings/summary', s.summary],
-    ['/settings/setup', s.setup],
-    ['/settings/dumbbells', s.dumbbells],
     ['/settings/reminders', s.reminders],
     ['/settings/install', s.install],
     ['/settings/data', s.data],
@@ -57,8 +50,7 @@ export function DisplaySettings() {
   const { t } = useI18n();
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const [name, setName] = useState(data.profile.displayName ?? '');
-  const [year, setYear] = useState(data.profile.birthYear ? String(data.profile.birthYear) : '');
-  const [yearError, setYearError] = useState(false);
+  const [nameSaved, setNameSaved] = useState(false);
   const device = deviceTimeZone();
 
   useEffect(() => {
@@ -79,7 +71,7 @@ export function DisplaySettings() {
     <Page title={t.settings.sections.display}>
       <BackLink to="/settings" />
       <ChoiceGroup
-        legend={t.languageStep.title}
+        legend={t.settings.languageTitle}
         name="lang"
         value={data.profile.language}
         onChange={(v) => void apply((d, c) => updateProfile(d, { language: v as 'en' | 'zh' }, c))}
@@ -97,14 +89,14 @@ export function DisplaySettings() {
       />
       <ChoiceGroup
         legend={t.settings.voice}
-        hint={t.languageStep.voiceBody}
+        hint={t.settings.voiceBody}
         name="voice"
         value={data.profile.voice}
         onChange={(v) => void apply((d, c) => updateProfile(d, { voice: v as 'off' | 'mandarin' | 'english' }, c))}
         choices={[
-          { value: 'off', label: t.languageStep.voiceOff },
-          { value: 'mandarin', label: t.languageStep.voiceMandarin },
-          { value: 'english', label: t.languageStep.voiceEnglish },
+          { value: 'off', label: t.settings.voiceOff },
+          { value: 'mandarin', label: t.settings.voiceMandarin },
+          { value: 'english', label: t.settings.voiceEnglish },
         ]}
       />
       {data.profile.voice !== 'off' ? (
@@ -120,9 +112,24 @@ export function DisplaySettings() {
       ) : null}
       {voiceStatus ? <p role="status">{voiceStatus}</p> : null}
 
+      <form
+        className="stack-sm"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void apply((d, c) => updateProfile(d, { displayName: name.trim() ? name.trim().slice(0, 60) : null }, c));
+          setNameSaved(true);
+        }}
+      >
+        <div className="field">
+          <label htmlFor="display-name">{t.settings.name}</label>
+          <input id="display-name" type="text" maxLength={60} autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <Button type="submit">{t.save}</Button>
+        {nameSaved ? <p role="status">{t.saved}</p> : null}
+      </form>
+
       <section className="stack-sm">
-        <h2>{t.settings.region}</h2>
-        <p>{t.settings.timezone(data.schedule.timezone)}</p>
+        <p className="muted">{t.settings.timezone(data.schedule.timezone)}</p>
         {device && device !== data.schedule.timezone ? (
           <Button onClick={() => void apply((d, c) => setScheduleDetails(d, { timezone: device }, c))}>{t.settings.useDeviceTz(device)}</Button>
         ) : null}
@@ -132,56 +139,18 @@ export function DisplaySettings() {
           </Button>
         ) : null}
       </section>
-
-      <form
-        className="stack-sm"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const y = year.trim() ? Number(year) : null;
-          const valid = y === null || (Number.isInteger(y) && y >= 1900 && y <= new Date().getFullYear());
-          setYearError(!valid);
-          if (!valid) return;
-          void apply((d, c) => updateProfile(d, { displayName: name.trim() ? name.trim().slice(0, 60) : null, birthYear: y }, c));
-        }}
-      >
-        <div className="field">
-          <label htmlFor="display-name">{t.settings.name}</label>
-          <input id="display-name" type="text" maxLength={60} autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="field">
-          <label htmlFor="birth-year">{t.settings.birthYear}</label>
-          <input id="birth-year" type="number" inputMode="numeric" min={1900} max={2100} value={year} onChange={(e) => setYear(e.target.value)} aria-invalid={yearError} />
-        </div>
-        {yearError ? <p role="alert">{t.settings.birthYearInvalid}</p> : null}
-        <Button type="submit">{t.save}</Button>
-      </form>
     </Page>
   );
 }
 
 export function ScheduleSettings() {
-  const { data } = useStore();
   const { t } = useI18n();
-  const [section, setSection] = useState<'days' | 'cue' | 'goal' | null>(null);
   const [saved, setSaved] = useState(false);
-  if (section === 'cue') return <CueStep onDone={() => setSection(null)} />;
-  if (section === 'goal') return <GoalStep onDone={() => setSection(null)} />;
-  const goal: GoalId | null = data.profile.goal;
   return (
     <Page title={t.settings.sections.schedule}>
       <BackLink to="/settings" />
       <DaysPicker onSaved={() => setSaved(true)} submitLabel={t.save} />
       {saved ? <p role="status">{t.saved}</p> : null}
-      <section className="card stack-sm">
-        <h2>{t.settings.cue}</h2>
-        <p>{data.schedule.cue ? t.cueSentence(data.schedule.cue) : t.cueStep.template}</p>
-        <Button onClick={() => setSection('cue')}>{t.settings.cue}</Button>
-      </section>
-      <section className="card stack-sm">
-        <h2>{t.settings.goal}</h2>
-        <p>{goal ? (goal === 'own' ? data.profile.goalText : t.goals[goal]) : '—'}</p>
-        <Button onClick={() => setSection('goal')}>{t.settings.goal}</Button>
-      </section>
     </Page>
   );
 }
@@ -267,9 +236,9 @@ export function SourcesScreen() {
     <Page title={t.sources.title}>
       <BackLink to="/settings" />
       <p>{t.sources.reviewed(formatLocalDate(CONTENT_REVIEW_DATE, lang), PROGRAM.version)}</p>
-      <h2>{t.sources.limitationsTitle}</h2>
+      <h2>{t.sources.notesTitle}</h2>
       <ul>
-        {t.sources.limitations.map((l) => (
+        {t.sources.notes.map((l) => (
           <li key={l}>{l}</li>
         ))}
       </ul>
@@ -294,16 +263,9 @@ export function SourcesScreen() {
               {L(v.label)}
             </a>
             <p className="muted" style={{ margin: 0 }}>
-              {v.publisher} · {formatDuration(v.durationSeconds)} · {v.videoId}
+              {v.publisher} · {formatDuration(v.durationSeconds)}
+              {v.role === 'reference-only' ? ` · ${t.sources.referenceOnly}` : ''}
             </p>
-            <ul>
-              {v.role === 'reference-only' ? <li>{t.sources.videoStatus.referenceOnly}</li> : null}
-              <li>{t.sources.videoStatus.sourceChecked(v.sourceCheckedAt ?? '?')}</li>
-              <li>{t.sources.videoStatus.visualPending}</li>
-              <li>{t.sources.videoStatus.notTested}</li>
-              <li>{t.sources.videoStatus.offline}</li>
-              <li>{L(v.qualification)}</li>
-            </ul>
           </li>
         ))}
         {EDUCATION_ENTRIES.map((e) => (
@@ -314,7 +276,6 @@ export function SourcesScreen() {
             <p className="muted" style={{ margin: 0 }}>
               {e.publisher} · {formatDuration(e.durationSeconds)}
             </p>
-            <p style={{ margin: 0 }}>{L(e.note)}</p>
           </li>
         ))}
       </ul>
@@ -330,9 +291,6 @@ export function AboutScreen() {
       {t.about.body.map((p) => (
         <p key={p}>{p}</p>
       ))}
-      <p lang="zh-Hans" className="card card--info">
-        关于这些数字：起始的量和每个阶段之间的变化，是为这个应用定下的谨慎建议，不是专门为你开的医疗处方。请以你的医生或物理治疗师的意见为准。
-      </p>
       <p>{t.plan.coverage}</p>
     </Page>
   );

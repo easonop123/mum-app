@@ -6,11 +6,7 @@ import catalogue from '../content/exercise-catalogue.json';
 // @ts-expect-error — plain ESM helper shared with the docs generator
 import { renderProgramMarkdown } from '../../scripts/program-doc.mjs';
 import { buildPracticeIcs, foldLine } from './ics';
-import { buildClinicianSummary } from './summary';
 import { canApplyUpdate } from '../pwa/updateGuard';
-import { createInitialAppData } from '../data/defaults';
-import { commitScreening, recordProfessionalAdvice } from '../data/actions';
-import { CLEAR_ANSWERS, approvedAdvice } from '../../tests/factories';
 
 describe('calendar file (.ics) — a deliberate, user-imported reminder', () => {
   const ics = buildPracticeIcs({
@@ -43,39 +39,6 @@ describe('calendar file (.ics) — a deliberate, user-imported reminder', () => 
 
   it('rejects an invalid time instead of guessing', () => {
     expect(() => buildPracticeIcs({ weekdays: ['Monday'], time: '25:00', timezone: 'Pacific/Auckland', firstDate: '2026-11-02', title: 'x', description: 'y', uid: 'u', nowIso: '2026-11-02T00:00:00.000Z' })).toThrow();
-  });
-});
-
-describe('clinician discussion summary', () => {
-  const now = '2026-11-03T00:00:00.000Z';
-  const ctx = { now, today: '2026-11-03', newId: () => 'x' };
-
-  it('reports the person’s own answers, including "Not sure", without inventing a diagnosis', () => {
-    let d = createInitialAppData(now);
-    d = commitScreening(d, { ...CLEAR_ANSWERS, spreadingNumbWeak: 'unsure' }, {}, true, ctx);
-    const en = buildClinicianSummary(d, 'en', new Date(now));
-    const zh = buildClinicianSummary(d, 'zh', new Date(now));
-    expect(en).toContain('Not sure');
-    expect(zh).toContain('不确定');
-    expect(en).toContain('not a diagnosis');
-    expect(zh).toContain('不是诊断');
-    expect(en).not.toMatch(/\bsciatica\b|\bdiscs?\b|stenosis|diagnosed with|osteoporosis: yes/i);
-    expect(en).toContain('Stage 8');
-    expect(en).toContain('Age: not recorded');
-  });
-
-  it('shows age as a range when only the birth year is known', () => {
-    let d = createInitialAppData(now);
-    d = { ...d, profile: { ...d.profile, birthYear: 1980 } };
-    expect(buildClinicianSummary(d, 'en', new Date(now))).toContain('Age: 45 or 46 (birthday not recorded)');
-  });
-
-  it('includes recorded advice as the person recorded it', () => {
-    let d = createInitialAppData(now);
-    d = recordProfessionalAdvice(d, approvedAdvice({ maxStage: 3, restrictionsNote: 'No deep bends' }), ctx);
-    const en = buildClinicianSummary(d, 'en', new Date(now));
-    expect(en).toContain('up to Stage 3');
-    expect(en).toContain('No deep bends');
   });
 });
 
