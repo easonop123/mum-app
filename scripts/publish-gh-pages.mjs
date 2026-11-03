@@ -31,7 +31,8 @@ try {
   const git = (...args) => execFileSync('git', args, { cwd: dir, stdio: 'inherit' });
   git('init', '-q', '-b', 'gh-pages');
   git('add', '-A');
-  git('commit', '-q', '-m', `Deploy build of ${sourceRev}`);
+  const extra = process.env.DEPLOY_MESSAGE_EXTRA ? `\n\n${process.env.DEPLOY_MESSAGE_EXTRA}` : '';
+  git('commit', '-q', '-m', `Deploy build of ${sourceRev}${extra}`);
   git('push', '--force', remote, 'gh-pages');
   console.log('Published dist/ to gh-pages.');
 } finally {
