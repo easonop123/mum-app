@@ -1,0 +1,50 @@
+{
+  "name": "a-little-stronger",
+  "private": true,
+  "version": "1.0.0",
+  "description": "一点力 / A Little Stronger — a local-first, bilingual home strength-practice PWA that implements one fixed, supplied starter program.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/check-bundle-privacy.mjs",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "icons": "node scripts/generate-icons.mjs",
+    "program:doc": "node scripts/generate-program-doc.mjs",
+    "check:privacy": "node scripts/check-bundle-privacy.mjs",
+    "verify": "npm run typecheck && npm test && npm run build && npm run test:e2e",
+    "deploy": "npm run build && node scripts/publish-gh-pages.mjs"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.63.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.8",
+    "@types/node": "^22.10.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "fake-indexeddb": "6.2.7",
+    "jsdom": "30.1.3",
+    "playwright-core": "^1.63.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "vite-plugin-pwa": "2.0.0",
+    "vitest": "5.1.0",
+    "workbox-build": "7.4.1",
+    "workbox-window": "7.4.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

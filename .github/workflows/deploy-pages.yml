@@ -1,0 +1,41 @@
+# Checks, builds and publishes the app to GitHub Pages on every push to main.
+# One-time setup: Settings → Pages → Build and deployment →
+#   Source: "Deploy from a branch", Branch: "gh-pages" / "(root)".
+name: Test and deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the built site to the gh-pages branch
+
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      # Builds and runs the bundle privacy scan (fails the job if anything personal would ship).
+      # Optional: add a repository secret PRIVACY_DENYLIST (one regex per line) for private patterns.
+      - run: npm run build
+        env:
+          PRIVACY_DENYLIST: ${{ secrets.PRIVACY_DENYLIST }}
+      - name: Publish dist/ to gh-pages
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          DEPLOY_REMOTE="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" node scripts/publish-gh-pages.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

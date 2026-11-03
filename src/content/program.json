@@ -1,0 +1,27 @@
+{
+  "programId": "mum-home-foundation-v2",
+  "version": "2026-11-03",
+  "initialStatus": "assessment_pending",
+  "defaultWeekdays": ["Tuesday", "Friday"],
+  "warmupWalkSeconds": 120,
+  "restSeconds": 60,
+  "minimumFullSessionsPerStage": 2,
+  "exerciseOrder": ["chair-sit-to-stand", "wall-press-up", "supported-heel-raise", "supported-side-leg-lift"],
+  "sideLegLiftRepsArePerSide": true,
+  "stageDoses": [
+    {"stage": 1, "sets": [1,1,1,1], "reps": [5,5,5,5]},
+    {"stage": 2, "sets": [1,1,1,1], "reps": [8,8,8,8]},
+    {"stage": 3, "sets": [2,1,1,1], "reps": [8,8,8,8]},
+    {"stage": 4, "sets": [2,2,1,1], "reps": [8,8,8,8]},
+    {"stage": 5, "sets": [2,2,2,1], "reps": [8,8,8,8]},
+    {"stage": 6, "sets": [2,2,2,2], "reps": [8,8,8,8]},
+    {"stage": 7, "sets": [2,2,2,2], "reps": [10,10,10,10]},
+    {"stage": 8, "sets": [2,2,2,2], "reps": [10,10,10,10]}
+  ],
+  "tinySession": [
+    {"exerciseId": "chair-sit-to-stand", "sets": 1, "reps": 3},
+    {"exerciseId": "wall-press-up", "sets": 1, "reps": 3}
+  ],
+  "tinySessionCountsForProgression": false,
+  "automaticAddedLoadKg": 0
+}

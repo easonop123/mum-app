@@ -1,0 +1,271 @@
+{
+  "catalogueVersion": "2026-11-03",
+  "programId": "mum-home-foundation-v2",
+  "note": "Exercise wording supplied with program mum-home-foundation-v2 (2026-11-03). 'supplied' fields are verbatim; 'en'/'zh' fields are plain-language UI copy derived from them. Chinese safety and technique wording still needs review by a qualified bilingual reviewer before real-world use.",
+  "exercises": [
+    {
+      "id": "chair-sit-to-stand",
+      "status": "active",
+      "involvesStanding": true,
+      "unilateral": false,
+      "support": "chair",
+      "name": {
+        "en": "Chair sit-to-stand",
+        "zh": "坐站练习"
+      },
+      "shortName": {
+        "en": "Sit-to-stand",
+        "zh": "坐站"
+      },
+      "supplied": {
+        "technique": "Stable armless chair against wall, feet planted hip-width apart, comfortable forward lean, stand smoothly and sit slowly. Hands on thighs may help; no stacked cushions. One stand plus return to sitting = one rep.",
+        "benefit": "Practice getting up; work thighs and hips. 练习起身，让大腿和臀部更有力。",
+        "ifNotSuitable": "Stop and review; no AI-selected replacement."
+      },
+      "technique": {
+        "en": "Use a stable chair without armrests, with its back against a wall. Plant your feet hip-width apart. Lean forward a comfortable amount, stand up smoothly, then sit down slowly. Hands on your thighs may help. Don't stack cushions on the seat. Standing up and sitting back down counts as one.",
+        "zh": "使用稳固、没有扶手的椅子，椅背靠墙。双脚踩稳，与髋同宽。身体舒适地向前倾，平稳地站起来，再慢慢坐下。双手可以扶在大腿上帮忙。不要在椅子上叠坐垫。站起来再坐下，算1次。"
+      },
+      "cues": {
+        "en": [
+          "Feet flat on the floor, hip-width apart.",
+          "Lean forward a little, then stand up smoothly.",
+          "Sit down slowly. Hands on your thighs can help."
+        ],
+        "zh": [
+          "双脚平放踩稳，与髋同宽。",
+          "身体稍微前倾，平稳地站起来。",
+          "慢慢坐下。双手可以扶在大腿上帮忙。"
+        ]
+      },
+      "repDefinition": {
+        "en": "Stand up + sit down = 1",
+        "zh": "站起来 + 坐下 = 1次"
+      },
+      "benefit": {
+        "en": "Practice getting up; work thighs and hips.",
+        "zh": "练习起身，让大腿和臀部更有力。"
+      },
+      "ifNotSuitable": {
+        "en": "If it doesn't feel right, stop and talk it over with your GP or physio. The app won't swap in a different exercise.",
+        "zh": "如果这个动作不合适，先停下，和医生或物理治疗师商量。应用不会自动换成别的动作。"
+      },
+      "goalLinks": {
+        "chair_rising": {
+          "en": "This is the getting-up-from-a-chair movement itself, practised slowly.",
+          "zh": "这就是从椅子上起身的动作，慢慢地练。"
+        },
+        "carrying": {
+          "en": "Thighs and hips do much of the work when you lift and carry light things.",
+          "zh": "拿起和提着轻的东西时，大腿和臀部出了很多力。"
+        },
+        "standing": {
+          "en": "Thigh and hip muscles help hold you up when you stand.",
+          "zh": "站着的时候，大腿和臀部的肌肉在支撑你。"
+        },
+        "confidence": {
+          "en": "Practising getting up smoothly can make an everyday movement feel more familiar.",
+          "zh": "多练习平稳起身，日常动作会更熟悉、更有底。"
+        }
+      }
+    },
+    {
+      "id": "wall-press-up",
+      "status": "active",
+      "involvesStanding": true,
+      "unilateral": false,
+      "support": "wall",
+      "name": {
+        "en": "Wall press-up",
+        "zh": "扶墙推起"
+      },
+      "shortName": {
+        "en": "Wall press-up",
+        "zh": "扶墙推起"
+      },
+      "supplied": {
+        "technique": "Hands around chest height, initially close enough to be easy. Bend elbows through a comfortable range, push back with trunk controlled. One bend-and-push-back = one rep.",
+        "benefit": "Practice pushing; work chest and arms. 练习推的力量，让胸部和手臂更有力。",
+        "ifNotSuitable": "Stop/review; no automatic floor or counter progression."
+      },
+      "technique": {
+        "en": "Put your hands on the wall at about chest height. Start close enough to the wall that it feels easy. Bend your elbows through a comfortable range, then push back, keeping your body steady. Bending in and pushing back counts as one.",
+        "zh": "双手扶墙，大约与胸同高。一开始站得离墙近一些，让动作轻松。在舒适的范围内弯曲手肘，再推回来，身体保持稳定。弯下去再推回来，算1次。"
+      },
+      "cues": {
+        "en": [
+          "Hands on the wall at about chest height.",
+          "Stand close enough that it feels easy.",
+          "Bend your elbows a comfortable amount, then push back. Keep your body steady."
+        ],
+        "zh": [
+          "双手扶墙，大约与胸同高。",
+          "站得离墙近一些，让动作轻松。",
+          "在舒适范围内弯曲手肘，再推回来，身体保持稳定。"
+        ]
+      },
+      "repDefinition": {
+        "en": "Bend in + push back = 1",
+        "zh": "弯下去 + 推回来 = 1次"
+      },
+      "benefit": {
+        "en": "Practice pushing; work chest and arms.",
+        "zh": "练习推的力量，让胸部和手臂更有力。"
+      },
+      "ifNotSuitable": {
+        "en": "If it doesn't feel right, stop and talk it over with your GP or physio. The app won't move you on to a harder version, such as on the floor or a counter.",
+        "zh": "如果不合适，先停下，和医生或物理治疗师商量。应用不会自动换成更难的做法（比如在地上或台面上做）。"
+      },
+      "goalLinks": {
+        "chair_rising": {
+          "en": "Arm strength helps when you push up from a chair with your hands.",
+          "zh": "用手撑着从椅子上起身时，会用到手臂的力量。"
+        },
+        "carrying": {
+          "en": "Your chest and arms work when you hold and carry things.",
+          "zh": "拿着、提着东西时，胸部和手臂都在出力。"
+        },
+        "standing": {
+          "en": "This one is mainly for your arms and chest. It rounds out the routine.",
+          "zh": "这个动作主要练手臂和胸部，让整套练习更全面一些。"
+        },
+        "confidence": {
+          "en": "Pushing comes up in daily life, for example pushing open a heavy door.",
+          "zh": "日常生活里常要用到推的力量，比如推开一扇重门。"
+        }
+      }
+    },
+    {
+      "id": "supported-heel-raise",
+      "status": "active",
+      "involvesStanding": true,
+      "unilateral": false,
+      "support": "counter",
+      "name": {
+        "en": "Supported heel raise",
+        "zh": "扶稳提踵"
+      },
+      "shortName": {
+        "en": "Heel raise",
+        "zh": "提踵"
+      },
+      "supplied": {
+        "technique": "Both hands on fixed counter, both heels rise comfortably and lower slowly. Retain support, no step edge or single-leg test. Both heels up/down = one rep.",
+        "benefit": "Work calves for walking/standing. 练习小腿发力，支持走路和站立。",
+        "ifNotSuitable": "Stop/review; no undemonstrated seated substitution."
+      },
+      "technique": {
+        "en": "Hold a fixed counter with both hands. Raise both heels a comfortable amount, then lower them slowly. Keep holding on. Don't stand on a step edge, and don't try it on one leg. Both heels up and down counts as one.",
+        "zh": "双手扶住固定的台面。双脚脚跟一起抬起到舒适的高度，再慢慢放下。全程扶稳。不要站在台阶边缘，也不要单腿做。双脚跟抬起再放下，算1次。"
+      },
+      "cues": {
+        "en": [
+          "Hold the fixed counter with both hands.",
+          "Lift both heels a comfortable amount.",
+          "Lower slowly. Keep holding on the whole time."
+        ],
+        "zh": [
+          "双手扶住固定的台面。",
+          "双脚脚跟一起抬起，抬到舒适的高度。",
+          "慢慢放下，全程扶稳。"
+        ]
+      },
+      "repDefinition": {
+        "en": "Heels up + down = 1",
+        "zh": "脚跟抬起 + 放下 = 1次"
+      },
+      "benefit": {
+        "en": "Work calves for walking and standing.",
+        "zh": "练习小腿发力，支持走路和站立。"
+      },
+      "ifNotSuitable": {
+        "en": "If it doesn't feel right, stop and talk it over with your GP or physio. The app won't swap in a seated version that nobody has shown you.",
+        "zh": "如果不合适，先停下，和医生或物理治疗师商量。应用不会换成没人示范过的坐姿做法。"
+      },
+      "goalLinks": {
+        "chair_rising": {
+          "en": "Your calves help with standing and walking once you're up.",
+          "zh": "站起来以后，站立和走路都要靠小腿出力。"
+        },
+        "carrying": {
+          "en": "Your calves work every time you walk, including when you carry something.",
+          "zh": "走路时小腿都在出力，提着东西走路时也一样。"
+        },
+        "standing": {
+          "en": "Your calves work whenever you stand and walk.",
+          "zh": "站立和走路时，小腿一直在出力。"
+        },
+        "confidence": {
+          "en": "Calves support the everyday walking and standing you already do.",
+          "zh": "小腿支持你每天的走路和站立。"
+        }
+      }
+    },
+    {
+      "id": "supported-side-leg-lift",
+      "status": "active",
+      "involvesStanding": true,
+      "unilateral": true,
+      "support": "counter",
+      "name": {
+        "en": "Supported side leg lift",
+        "zh": "扶稳侧抬腿"
+      },
+      "shortName": {
+        "en": "Side leg lift",
+        "zh": "侧抬腿"
+      },
+      "supplied": {
+        "technique": "Hold fixed counter, toes forward, small sideways lift and controlled return without leaning or twisting. One out-and-return on one leg = one rep.",
+        "benefit": "Work side-of-hip muscles for movement control. 练习髋部侧面的肌肉，帮助控制站立和移动。",
+        "ifNotSuitable": "Stop/review rather than stretching through symptoms."
+      },
+      "technique": {
+        "en": "Hold a fixed counter with your toes pointing forward. Lift one leg a small way out to the side, then bring it back with control. Don't lean or twist. One leg out and back counts as one. Do the stated number on each side.",
+        "zh": "扶住固定的台面，脚尖朝前。一条腿向侧面小幅抬起，再有控制地收回，身体不要倾斜或扭转。一条腿抬出去再收回，算1次。左右两边各做规定的次数。"
+      },
+      "cues": {
+        "en": [
+          "Hold the fixed counter. Toes point forward.",
+          "Lift one leg a small way out to the side.",
+          "Bring it back with control. Don't lean or twist."
+        ],
+        "zh": [
+          "扶住固定的台面，脚尖朝前。",
+          "一条腿向侧面小幅抬起。",
+          "有控制地收回，身体不倾斜、不扭转。"
+        ]
+      },
+      "repDefinition": {
+        "en": "One leg out + back = 1 (count each side separately)",
+        "zh": "一条腿抬出 + 收回 = 1次（左右分开数）"
+      },
+      "benefit": {
+        "en": "Work the muscles at the side of your hips, which help control standing and moving.",
+        "zh": "练习髋部侧面的肌肉，帮助控制站立和移动。"
+      },
+      "ifNotSuitable": {
+        "en": "If it doesn't feel right, stop and talk it over with your GP or physio. Don't push or stretch through symptoms.",
+        "zh": "如果不合适，先停下，和医生或物理治疗师商量。不要忍着不舒服继续拉伸或用力。"
+      },
+      "goalLinks": {
+        "chair_rising": {
+          "en": "The side-of-hip muscles help control your movement as you get up and stand.",
+          "zh": "起身和站立时，髋部侧面的肌肉帮助控制动作。"
+        },
+        "carrying": {
+          "en": "These muscles help control standing and moving, including when you carry things.",
+          "zh": "这些肌肉帮助控制站立和移动，提东西时也会用到。"
+        },
+        "standing": {
+          "en": "These muscles help control how you stand and move.",
+          "zh": "这些肌肉帮助控制站立和移动。"
+        },
+        "confidence": {
+          "en": "These muscles help control everyday standing and moving.",
+          "zh": "这些肌肉帮助控制日常的站立和移动。"
+        }
+      }
+    }
+  ]
+}
